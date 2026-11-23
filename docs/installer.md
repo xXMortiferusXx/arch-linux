@@ -58,4 +58,3 @@ Abnahme Phase 0: VM bootet nach der Installation und SSH ist erreichbar.
 - Hardware-Test auf nex (NVIDIA/PRIME, Umbriel/Noctalia, Greeter-Sync)
 - Greeter-Theme-Sync: greift erst nach dem ersten Login (in der VM nicht testbar)
 - Drift-Check: `pacman -Qqe` gegen `hosts/<host>/packages.list`
-- GRUB-Theme + Menue-Aufraeumen (`30_uefi-firmware` deaktivieren)

@@ -20,16 +20,55 @@ install_boot() {
     extra_cmdline="$(tr '\n' ' ' < "$profile/kernel-cmdline" | sed 's/[[:space:]]*$//')"
   fi
 
+  # GRUB-Theme (Hintergrund + Menue) aus hosts/<host>/boot/grub.
+  local theme_dir="$TARGET/boot/grub/themes/unholy-angels"
+  local grub_theme=""
+  if [ -n "$profile" ] && [ -f "$profile/boot/grub/background.png" ]; then
+    install -d "$theme_dir"
+    install -m 644 "$profile/boot/grub/background.png" "$theme_dir/background.png"
+    install -m 644 "$profile/boot/grub/theme/theme.txt" "$theme_dir/theme.txt"
+
+    # Schriften aus DejaVu erzeugen; die Dateinamen muessen exakt zu den
+    # Namen in theme.txt passen. Ohne ttf-dejavu: Standardschrift nutzen.
+    if arch-chroot "$TARGET" test -f /usr/share/fonts/TTF/DejaVuSans.ttf; then
+      arch-chroot "$TARGET" grub-mkfont -s 22 \
+        -o "/boot/grub/themes/unholy-angels/DejaVu Sans Regular 22.pf2" \
+        /usr/share/fonts/TTF/DejaVuSans.ttf
+      if arch-chroot "$TARGET" test -f /usr/share/fonts/TTF/DejaVuSansMono.ttf; then
+        arch-chroot "$TARGET" grub-mkfont -s 16 \
+          -o "/boot/grub/themes/unholy-angels/DejaVu Sans Mono Regular 16.pf2" \
+          /usr/share/fonts/TTF/DejaVuSansMono.ttf
+      else
+        sed -i '/^terminal-font:/d' "$theme_dir/theme.txt"
+      fi
+    else
+      ui_warn "ttf-dejavu fehlt – GRUB nutzt seine Standardschrift"
+      sed -i '/-font:/d' "$theme_dir/theme.txt"
+    fi
+    grub_theme="GRUB_THEME=\"/boot/grub/themes/unholy-angels/theme.txt\""
+  fi
+
+  # Firmware-/BootNext-Eintraege aus dem Menue nehmen (Optik/Aufraeumen).
+  # 30_uefi-firmware und 31_efi_bootnext (Arch-Patch) listen NVRAM-Eintraege
+  # wie "UEFI PXE", "UEFI Misc Device" – im Alltag nur Ballast.
+  local grub_script
+  for grub_script in 30_uefi-firmware 31_efi_bootnext; do
+    if [ -x "$TARGET/etc/grub.d/$grub_script" ]; then
+      chmod -x "$TARGET/etc/grub.d/$grub_script"
+    fi
+  done
+
   install -d "$TARGET/etc/default"
   cat > "$TARGET/etc/default/grub" <<EOF
 GRUB_DEFAULT=0
-GRUB_TIMEOUT=5
+GRUB_TIMEOUT=10
 GRUB_TIMEOUT_STYLE=menu
 GRUB_DISTRIBUTOR="Arch"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3"
 GRUB_CMDLINE_LINUX="root=UUID=${root_uuid} rootflags=subvol=@ rw ${extra_cmdline}"
 GRUB_PRELOAD_MODULES="part_gpt btrfs"
 GRUB_DISABLE_OS_PROBER=true
+${grub_theme}
 EOF
 
   # initramfs mit btrfs-Hook (Subvolumes muessen im Initramfs lesbar sein).
@@ -43,6 +82,15 @@ EOF
     --target=x86_64-efi \
     --efi-directory=/boot \
     --bootloader-id=GRUB \
+    --recheck
+
+  # Fallback-Pfad \EFI\BOOT\BOOTX64.EFI zusaetzlich installieren: damit bootet
+  # die Platte auch bei leerem/zurueckgesetztem UEFI-NVRAM (BIOS-Update,
+  # andere Maschine, USB-Gehaeuse) – sonst landet man im PXE.
+  arch-chroot "$TARGET" grub-install \
+    --target=x86_64-efi \
+    --efi-directory=/boot \
+    --removable \
     --recheck
   arch-chroot "$TARGET" grub-mkconfig -o /boot/grub/grub.cfg
 

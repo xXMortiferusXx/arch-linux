@@ -55,6 +55,7 @@ unrar
 kitty-terminfo
 
 # --- Schriften ------------------------------------------------------------
+ttf-dejavu
 ttf-firacode-nerd
 ttf-jetbrains-mono-nerd
 noto-fonts
