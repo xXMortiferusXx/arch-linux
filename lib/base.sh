@@ -67,7 +67,7 @@ configure_base() {
   local tz="Europe/Berlin"
   local keymap="de-latin1"
   local locale="de_DE.UTF-8"
-  local username="mortiferus"
+  local username="${USERNAME:-mortiferus}"
 
   # Host-spezifische Overrides (optional): KEY=VALUE, wird gesourct.
   if [ -f "$profile/settings.env" ]; then
@@ -86,7 +86,13 @@ configure_base() {
   printf '%s\n' "$host" > "$TARGET/etc/hostname"
   printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$host" "$host" > "$TARGET/etc/hosts"
 
-  arch-chroot "$TARGET" useradd -m -G wheel -s /bin/bash "$username"
+  # Zusatzgruppen: audio/video fuer PipeWire+DRM, networkmanager fuer nmcli.
+  local groups="wheel,audio,video,networkmanager"
+  if [ "${I2C:-0}" = 1 ]; then
+    arch-chroot "$TARGET" groupadd -r i2c 2>/dev/null || true
+    groups="$groups,i2c"
+  fi
+  arch-chroot "$TARGET" useradd -m -G "$groups" -s /bin/bash "$username"
   # 750 statt 775: sshd (StrictModes) verweigert gruppen-schreibbare Homes.
   chmod 750 "$TARGET/home/$username"
 
@@ -120,7 +126,9 @@ configure_base() {
   fi
 
   arch-chroot "$TARGET" systemctl enable NetworkManager
-  arch-chroot "$TARGET" systemctl enable sshd
+  if [ "${SSHD:-1}" = 1 ]; then
+    arch-chroot "$TARGET" systemctl enable sshd
+  fi
 
   # Host-Configs (sysctl, udev, polkit, greetd ...) 1:1 uebernehmen.
   if [ -d "$profile/config" ]; then
@@ -141,7 +149,7 @@ configure_base() {
 }
 
 set_passwords() {
-  local username="mortiferus"
+  local username="${USERNAME:-mortiferus}"
   ui_info "Passwort fuer root:"
   arch-chroot "$TARGET" passwd root
   ui_info "Passwort fuer $username:"

@@ -138,6 +138,21 @@ fi
 PROFILE="$REPO_DIR/hosts/$HOST"
 [ -d "$PROFILE" ] || die "Host-Profil nicht gefunden: $PROFILE"
 [ -f "$PROFILE/packages.list" ] || die "Paketliste fehlt: $PROFILE/packages.list"
+
+# Host-Features (hosts/<host>/settings.env) mit Defaults fuer nex
+USERNAME="${USERNAME:-mortiferus}"
+GPU="${GPU:-nvidia}"            # nvidia | amd
+SUNSHINE="${SUNSHINE:-0}"       # Game-Streaming-Host
+SCANNER="${SCANNER:-1}"         # NAPS2 / sane
+FLATPAK="${FLATPAK:-0}"         # Flatpak + Bazaar
+LAPTOP="${LAPTOP:-1}"           # Legion-Akku-Limit
+SSHD="${SSHD:-1}"               # SSH-Server (nex: aus, lion/benny: an)
+I2C="${I2C:-0}"                 # ddcutil/Monitor-Helligkeit
+if [ -f "$PROFILE/settings.env" ]; then
+  # shellcheck disable=SC1090
+  . "$PROFILE/settings.env"
+fi
+export USERNAME GPU SUNSHINE SCANNER FLATPAK LAPTOP SSHD I2C
 [ -b "$DISK" ] || die "Kein Blockgeraet: $DISK"
 
 # Spiele-Platte: nur mounten, nie formatieren.

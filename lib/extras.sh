@@ -10,14 +10,23 @@ install_extras() {
   extras_chaotic
   extras_snapshots "$profile"
   extras_btrfs
-  extras_nvidia "$profile"
+  if [ "${GPU:-nvidia}" = nvidia ]; then
+    extras_nvidia "$profile"
+  else
+    extras_graphics_amd
+  fi
   extras_desktop "$profile"
   extras_gaming "$profile"
-  extras_sunshine
+  if [ "${SUNSHINE:-0}" = 1 ]; then
+    extras_sunshine
+  fi
   extras_system
   extras_apps
   extras_services
   extras_keyring
+  if [ "${FLATPAK:-0}" = 1 ]; then
+    extras_flatpak
+  fi
 
   if [ -x "$profile/post.sh" ]; then
     ui_step "Host-Post-Skript"
@@ -222,6 +231,20 @@ EOF
   ui_ok "NVIDIA: Env, VRAM-Profile, nvidia-powerd, nvidia-offload"
 }
 
+# AMD-Grafik (Pendant zu modules/hardware/amdgpu.nix): Mesa/RADV kommt aus
+# der Paketliste, hier nur die Umgebung fuer VA-API/VDPAU.
+extras_graphics_amd() {
+  ui_step "Grafik (AMD/radeonsi)"
+  cat > "$TARGET/etc/environment" <<'EOF'
+# AMD GCN: VA-API/VDPAU ueber radeonsi
+LIBVA_DRIVER_NAME=radeonsi
+VDPAU_DRIVER=radeonsi
+# wlroots darf auf Software-Rendering zurueckfallen (VM/Remote)
+WLR_RENDERER_ALLOW_SOFTWARE=1
+EOF
+  ui_ok "AMD: radeonsi-Env gesetzt"
+}
+
 # Chaotic-AUR + Umbriel/Noctalia/Greeter + greetd.
 extras_desktop() {
   ui_step "Desktop (chaotic-aur, Umbriel/Noctalia)"
@@ -272,11 +295,7 @@ EOF
   # Avatar fuer den Greeter: ~/.face kommt aus dem Host-Profil (home/.face).
   # Der Greeter laeuft als User greeter und braucht Execute-Recht auf $HOME
   # (Pendant zu setfacl u:greeter:x in modules/home/*/config.nix).
-  local username="mortiferus"
-  if [ -f "$profile/settings.env" ]; then
-    # shellcheck disable=SC1090
-    . "$profile/settings.env"
-  fi
+  local username="${USERNAME:-mortiferus}"
   if [ -f "$TARGET/home/$username/.face" ]; then
     # setfacl im Ziel (acl gehoert dort zur Basis; im Live-ISO fehlt es)
     arch-chroot "$TARGET" setfacl -m u:greeter:x,m::r-x "/home/$username" \
@@ -336,9 +355,14 @@ extras_sunshine() {
 extras_apps() {
   ui_step "Zusatz-Apps (chaotic)"
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
-    bibata-cursor-theme tela-icon-theme naps2 vinegar python-pynput \
+    bibata-cursor-theme tela-icon-theme vinegar python-pynput \
     vkbasalt lib32-vkbasalt \
     || ui_warn "einzelne chaotic-Apps nicht verfuegbar"
+
+  if [ "${SCANNER:-1}" = 1 ]; then
+    arch-chroot "$TARGET" pacman -S --needed --noconfirm naps2 \
+      || ui_warn "naps2 nicht verfuegbar"
+  fi
 
   # xone: Xbox-Controller (USB-Dongle + BT) - DKMS baut im Chroot
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
@@ -356,12 +380,21 @@ extras_services() {
               udisks2.service irqbalance.service colord.service smartd.service \
               cups.socket avahi-daemon.service avahi-daemon.socket \
               fwupd.service fwupd-refresh.timer acpid.service \
-              cups-browsed.service logrotate.timer \
-              legion-conservation-mode.service \
-              nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service; do
+              cups-browsed.service logrotate.timer; do
     arch-chroot "$TARGET" systemctl enable "$unit" >/dev/null 2>&1 \
       || ui_warn "$unit nicht aktivierbar"
   done
+
+  if [ "${LAPTOP:-1}" = 1 ]; then
+    arch-chroot "$TARGET" systemctl enable legion-conservation-mode.service >/dev/null 2>&1 \
+      || ui_warn "legion-conservation-mode.service nicht aktivierbar"
+  fi
+  if [ "${GPU:-nvidia}" = nvidia ]; then
+    for unit in nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service; do
+      arch-chroot "$TARGET" systemctl enable "$unit" >/dev/null 2>&1 \
+        || ui_warn "$unit nicht aktivierbar"
+    done
+  fi
 
   # WLAN ueber iwd (Backend in /etc/NetworkManager/conf.d/10-wifi.conf)
   arch-chroot "$TARGET" systemctl enable iwd.service >/dev/null 2>&1 \
@@ -385,6 +418,31 @@ extras_services() {
   fi
 
   ui_ok "Bluetooth, Printing, DNS-Cache, chrony, fwupd, irqbalance aktiv"
+}
+
+# Flatpak + Bazaar (nur Hosts mit FLATPAK=1, z. B. lion-pc)
+extras_flatpak() {
+  ui_step "Flatpak + Bazaar"
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm flatpak \
+    || die "flatpak nicht installierbar"
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm bazaar-git \
+    || ui_warn "bazaar-git (chaotic) nicht verfuegbar"
+
+  # Im Chroot laeuft systemd-resolved nicht -> /etc/resolv.conf zeigt ins Leere.
+  local restore=0
+  if [ -L "$TARGET/etc/resolv.conf" ]; then
+    rm -f "$TARGET/etc/resolv.conf"
+    cp /etc/resolv.conf "$TARGET/etc/resolv.conf"
+    restore=1
+  fi
+  arch-chroot "$TARGET" flatpak remote-add --if-not-exists --system flathub \
+    https://dl.flathub.org/repo/flathub.flatpakrepo \
+    || ui_warn "Flathub-Remote nicht registriert (spaeter manuell)"
+  if [ "$restore" = 1 ]; then
+    rm -f "$TARGET/etc/resolv.conf"
+    ln -sf /run/systemd/resolve/stub-resolv.conf "$TARGET/etc/resolv.conf"
+  fi
+  ui_ok "Flatpak + Flathub, Bazaar"
 }
 
 # gnome-keyring wie auf NixOS: PAM entriegelt den Schluesselbund beim Login,
