@@ -20,21 +20,44 @@ install_extras() {
 
 # snapper nur fuer @ (System). /home, /gaming und /var/* sind eigene
 # Subvolumes und damit automatisch ausgenommen.
+# Die Config wird direkt geschrieben: "snapper create-config" braucht DBus
+# (snapperd), das im arch-chroot nicht laeuft.
 extras_snapshots() {
   ui_step "Snapshots (snapper)"
-  arch-chroot "$TARGET" snapper -c root create-config /
-  local cfg="$TARGET/etc/snapper/configs/root"
-  [ -f "$cfg" ] || die "snapper-Config fehlt: $cfg"
 
-  sed -i \
-    -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' \
-    -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="10"/' \
-    -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="5"/' \
-    "$cfg"
+  install -d -m 755 "$TARGET/etc/snapper/configs"
+  cat > "$TARGET/etc/snapper/configs/root" <<'CFG'
+SUBVOLUME="/"
+FSTYPE="btrfs"
+QGROUP=""
+SPACE_LIMIT="0.5"
+FREE_LIMIT="0.2"
+ALLOW_USERS=""
+ALLOW_GROUPS="wheel"
+SYNC_ACL="no"
+BACKGROUND_COMPARISON="yes"
+NUMBER_CLEANUP="yes"
+NUMBER_MIN_AGE="1800"
+NUMBER_LIMIT="10"
+NUMBER_LIMIT_IMPORTANT="5"
+TIMELINE_CREATE="no"
+TIMELINE_CLEANUP="yes"
+TIMELINE_MIN_AGE="1800"
+TIMELINE_LIMIT_HOURLY="0"
+TIMELINE_LIMIT_DAILY="0"
+TIMELINE_LIMIT_WEEKLY="0"
+TIMELINE_LIMIT_MONTHLY="0"
+TIMELINE_LIMIT_YEARLY="0"
+EMPTY_PRE_POST_CLEANUP="yes"
+EMPTY_PRE_POST_MIN_AGE="1800"
+CFG
 
-  # snap-pac legt Pre/Post-Snapshots bei jeder pacman-Transaktion an.
+  # snap-pac erst jetzt installieren: sein pacman-Hook wuerde sonst waehrend
+  # des pacstrap ohne snapper-Config laufen ("fatal library error").
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm snap-pac
   arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
-  ui_ok "snapper: / (NUMBER_LIMIT=10), snap-pac aktiv"
+
+  ui_ok "snapper: / (NUMBER_LIMIT=10, keine Timeline), snap-pac aktiv"
 }
 
 # NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.

@@ -10,7 +10,6 @@ networkmanager
 openssh
 btrfs-progs
 snapper
-snap-pac
 zram-generator
 # --- Werkzeuge ------------------------------------------------------------
 git
