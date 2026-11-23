@@ -63,6 +63,7 @@ configure_base() {
   arch-chroot "$TARGET" bash -c 'echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel && chmod 440 /etc/sudoers.d/wheel'
 
   arch-chroot "$TARGET" systemctl enable NetworkManager
+  arch-chroot "$TARGET" systemctl enable sshd
 
   # Host-Configs (sysctl, udev, polkit, greetd ...) 1:1 uebernehmen.
   if [ -d "$profile/config" ]; then
