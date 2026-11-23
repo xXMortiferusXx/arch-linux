@@ -9,8 +9,7 @@ arch-install-scripts
 pacman
 sudo
 networkmanager
-wpasupplicant
-iwd
+wpa_supplicant
 curl
 ca-certificates
 git

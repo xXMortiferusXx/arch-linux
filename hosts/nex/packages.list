@@ -26,6 +26,7 @@ vulkan-icd-loader
 vulkan-tools
 libva-utils
 nvidia-open-dkms
+linux-headers
 nvidia-utils
 nvidia-prime
 libva-nvidia-driver

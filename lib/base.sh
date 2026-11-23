@@ -8,12 +8,24 @@ pacstrap_base() {
   local list="$1"
   require_cmd pacstrap
 
+  enable_multilib
+
   # base + linux-firmware immer, dazu die Host-Pakete (Kommentare/Leerzeilen ignorieren).
   local pkgs=()
   mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$list" | grep -v '^$')
 
   pacstrap -K "$TARGET" base linux linux-firmware "${pkgs[@]}"
   ui_ok "pacstrap: ${#pkgs[@]} Host-Pakete + Basis"
+}
+
+# multilib ist Pflicht fuer Steam (32-bit) und lib32-Pakete.
+enable_multilib() {
+  if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+    sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+    ui_ok "multilib aktiviert"
+  elif ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+    die "multilib nicht in /etc/pacman.conf gefunden"
+  fi
 }
 
 gen_fstab() {
