@@ -7,6 +7,7 @@ TARGET=${TARGET:-/mnt}
 install_extras() {
   local profile="$1"
 
+  extras_chaotic
   extras_snapshots "$profile"
   extras_nvidia "$profile"
   extras_desktop "$profile"
@@ -47,6 +48,25 @@ extras_snap_pac() {
 #   2) /etc/conf.d/snapper (SNAPPER_CONFIGS) ist Pflicht: ohne Registrierung
 #      findet die CLI keine Config ("Konfiguration Root ist nicht vorhanden")
 #      und die systemd-Timer laufen leer.
+# Chaotic-AUR einbinden (Keyring + Mirrorlist). Wird von Desktop und
+# snapper-support gebraucht.
+extras_chaotic() {
+  ui_step "chaotic-aur"
+  arch-chroot "$TARGET" pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com >/dev/null 2>&1 \
+    || die "chaotic-aur: Key nicht abrufbar"
+  arch-chroot "$TARGET" pacman-key --lsign-key 3056513887B78AEB >/dev/null 2>&1 \
+    || die "chaotic-aur: Key nicht signierbar"
+  arch-chroot "$TARGET" pacman -U --noconfirm \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' >/dev/null \
+    || die "chaotic-aur: keyring/mirrorlist nicht installierbar"
+  if ! grep -q '^\[chaotic-aur\]' "$TARGET/etc/pacman.conf"; then
+    printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' >> "$TARGET/etc/pacman.conf"
+  fi
+  arch-chroot "$TARGET" pacman -Sy --noconfirm >/dev/null
+  ui_ok "chaotic-aur eingebunden"
+}
+
 extras_snapshots() {
   ui_step "Snapshots (snapper)"
 
@@ -88,7 +108,15 @@ CONF
 
   arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
   arch-chroot "$TARGET" systemctl disable snapper-timeline.timer >/dev/null 2>&1 || true
-  ui_ok "snapper: / (NUMBER_LIMIT=10, keine Timeline), snap-pac"
+
+  # Snapshot-Booteintraege: grub-btrfs baut das GRUB-Menue, snapper-support
+  # (chaotic) liefert den passenden Path/Service dafuer.
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm grub-btrfs snapper-support \
+    || die "grub-btrfs/snapper-support nicht installierbar"
+  arch-chroot "$TARGET" systemctl enable grub-btrfsd.service
+  arch-chroot "$TARGET" systemctl enable grub-btrfs-snapper.path
+
+  ui_ok "snapper: / (NUMBER_LIMIT=10), grub-btrfs (Snapshot-Booteintraege)"
 }
 
 # NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.
@@ -143,20 +171,7 @@ EOF
 extras_desktop() {
   ui_step "Desktop (chaotic-aur, Umbriel/Noctalia)"
 
-  arch-chroot "$TARGET" pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com >/dev/null 2>&1 \
-    || die "chaotic-aur: Key nicht abrufbar"
-  arch-chroot "$TARGET" pacman-key --lsign-key 3056513887B78AEB >/dev/null 2>&1 \
-    || die "chaotic-aur: Key nicht signierbar"
-
-  arch-chroot "$TARGET" pacman -U --noconfirm \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
-    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' >/dev/null \
-    || die "chaotic-aur: keyring/mirrorlist nicht installierbar"
-
-  if ! grep -q '^\[chaotic-aur\]' "$TARGET/etc/pacman.conf"; then
-    printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' >> "$TARGET/etc/pacman.conf"
-  fi
-  arch-chroot "$TARGET" pacman -Sy --noconfirm >/dev/null
+  extras_chaotic
 
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
     umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git \

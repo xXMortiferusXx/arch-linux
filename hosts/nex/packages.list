@@ -9,6 +9,9 @@ gnupg
 networkmanager
 openssh
 btrfs-progs
+grub
+efibootmgr
+grub-btrfs
 snapper
 zram-generator
 # --- Werkzeuge ------------------------------------------------------------
