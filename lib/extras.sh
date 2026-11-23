@@ -265,6 +265,33 @@ EOF
   install -m 644 "$TARGET/etc/noctalia-greeter.toml" "$TARGET/var/lib/noctalia-greeter/greeter.toml"
   arch-chroot "$TARGET" chown greeter:greeter /var/lib/noctalia-greeter/greeter.toml
 
+  # Avatar fuer den Greeter: ~/.face kommt aus dem Host-Profil (home/.face).
+  # Der Greeter laeuft als User greeter und braucht Execute-Recht auf $HOME
+  # (Pendant zu setfacl u:greeter:x in modules/home/*/config.nix).
+  local username="mortiferus"
+  if [ -f "$profile/settings.env" ]; then
+    # shellcheck disable=SC1090
+    . "$profile/settings.env"
+  fi
+  if [ -f "$TARGET/home/$username/.face" ]; then
+    setfacl -m u:greeter:x,m::r-x "$TARGET/home/$username" \
+      || ui_warn "setfacl fuer /home/$username fehlgeschlagen"
+
+    # AccountsService braucht das Icon explizit (nicht nur ~/.face), sonst
+    # zeigt der Greeter das Standard-Symbol.
+    install -d -m 755 "$TARGET/var/lib/AccountsService/icons"
+    install -d -m 700 "$TARGET/var/lib/AccountsService/users"
+    install -m 644 "$TARGET/home/$username/.face" \
+      "$TARGET/var/lib/AccountsService/icons/$username"
+    cat > "$TARGET/var/lib/AccountsService/users/$username" <<EOF
+[User]
+Icon=/var/lib/AccountsService/icons/$username
+SystemAccount=false
+EOF
+    chmod 600 "$TARGET/var/lib/AccountsService/users/$username"
+    ui_ok "Avatar fuer den Greeter gesetzt (AccountsService)"
+  fi
+
   arch-chroot "$TARGET" systemctl enable greetd
   arch-chroot "$TARGET" systemctl set-default graphical.target
   ui_ok "Desktop: greetd + Noctalia-Greeter (de, ohne Uhr)"

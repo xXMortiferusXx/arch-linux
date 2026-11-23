@@ -51,7 +51,7 @@ gen_fstab() {
   # Spiele-Platte mit nofail: fehlt/defekt -> Boot laeuft weiter (wie /home
   # auf einer externen Platte). Fehler beim Mounten fallen im Journal auf.
   if [ -n "${GAMING:-}" ]; then
-    awk 'BEGIN{OFS="\t"} $2=="/gaming" { for(i=4;i<=NF;i++) if($i=="defaults") $i="defaults,nofail" } {print}' \
+    awk 'BEGIN{OFS="\t"} $2=="/gaming" && $4 !~ /nofail/ { $4 = $4 ",nofail" } {print}' \
       "$TARGET/etc/fstab" > "$TARGET/etc/fstab.tmp"
     mv "$TARGET/etc/fstab.tmp" "$TARGET/etc/fstab"
   fi
@@ -85,6 +85,8 @@ configure_base() {
   printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$host" "$host" > "$TARGET/etc/hosts"
 
   arch-chroot "$TARGET" useradd -m -G wheel -s /bin/bash "$username"
+  # 750 statt 775: sshd (StrictModes) verweigert gruppen-schreibbare Homes.
+  chmod 750 "$TARGET/home/$username"
 
   # SSH-Keys (passwortloser Zugang, z. B. aus dem Test-Host)
   if [ -f "$profile/authorized_keys" ]; then
