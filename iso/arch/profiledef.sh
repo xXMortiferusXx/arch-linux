@@ -6,7 +6,7 @@ iso_name="arch-install"
 iso_label="ARCHINST_$(date +%y%m)"
 iso_publisher="arch-linux (github.com/xXMortiferusXx)"
 iso_application="Arch Linux Installer"
-iso_version="$(date +%Y.%m.%d)"
+iso_version="$(date +%Y.%m.%d-%H%M)"
 install_dir="arch"
 buildmodes=('iso')
 # Reihenfolge wie releng: BIOS zuerst, UEFI als El-Torito-Alt-Eintrag danach.
