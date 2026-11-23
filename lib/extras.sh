@@ -352,7 +352,7 @@ extras_services() {
               udisks2.service irqbalance.service colord.service smartd.service \
               cups.socket avahi-daemon.service avahi-daemon.socket \
               fwupd.service fwupd-refresh.timer acpid.service \
-              cups-browsed.service logrotate.timer systemd-oomd.service \
+              cups-browsed.service logrotate.timer \
               legion-conservation-mode.service; do
     arch-chroot "$TARGET" systemctl enable "$unit" >/dev/null 2>&1 \
       || ui_warn "$unit nicht aktivierbar"
