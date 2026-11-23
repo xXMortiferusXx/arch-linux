@@ -304,6 +304,10 @@ extras_system() {
 
   arch-chroot "$TARGET" systemctl enable accounts-daemon.service
 
+  # paru (AUR-Helper) aus chaotic; base-devel kommt aus packages.list.
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm paru \
+    || ui_warn "paru nicht installierbar – AUR-Pakete manuell bauen"
+
   arch-chroot "$TARGET" pacman -S --needed --noconfirm ananicy-rules-git \
     || ui_warn "ananicy-rules-git nicht verfuegbar – nur ananicy-cpp"
   install -d -m 755 "$TARGET/etc/ananicy.d"

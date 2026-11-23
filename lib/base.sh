@@ -9,13 +9,29 @@ pacstrap_base() {
   require_cmd pacstrap
 
   enable_multilib
+  # Live-System: gilt fuer pacstrap (schnellerer Download)
+  set_parallel_downloads /etc/pacman.conf
 
   # base + linux-firmware immer, dazu die Host-Pakete (Kommentare/Leerzeilen ignorieren).
   local pkgs=()
   mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$list" | grep -v '^$')
 
   pacstrap -K "$TARGET" base linux linux-firmware "${pkgs[@]}"
+
+  # Zielsystem: gleiche Einstellung dauerhaft
+  set_parallel_downloads "$TARGET/etc/pacman.conf"
   ui_ok "pacstrap: ${#pkgs[@]} Host-Pakete + Basis"
+}
+
+# Parallele Downloads (Arch-Default: 5).
+set_parallel_downloads() {
+  local conf="$1"
+  [ -f "$conf" ] || return 0
+  if grep -qE '^#?ParallelDownloads' "$conf"; then
+    sed -i 's/^#\?ParallelDownloads.*/ParallelDownloads = 10/' "$conf"
+  else
+    sed -i '/^\[options\]/a ParallelDownloads = 10' "$conf"
+  fi
 }
 
 # multilib ist Pflicht fuer Steam (32-bit) und lib32-Pakete.
