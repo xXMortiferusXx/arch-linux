@@ -68,9 +68,10 @@ cmd_iso() {
   fi
   if [ -n "$ovmf_code" ]; then
     ovmf_vars="$WORK/OVMF_VARS.fd"
-    if [ ! -f "$ovmf_vars" ]; then
-      cp "$(dirname "$ovmf_code")/OVMF_VARS.fd" "$ovmf_vars"
-    fi
+    # Immer frische NVRAM: sonst bleiben PXE-Booteintraege aus Fehlversuchen
+    # in der Boot-Order haengen.
+    rm -f "$ovmf_vars"
+    cp "$(dirname "$ovmf_code")/OVMF_VARS.fd" "$ovmf_vars"
     chmod u+w "$ovmf_vars"   # Store-Datei ist read-only, QEMU braucht Schreibzugriff
     ovmf_args=(
       -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code"
