@@ -94,6 +94,36 @@ cmd_iso() {
     -vga std -display gtk
 }
 
+# Installiertes System booten (ohne ISO/CD, damit die Platte bootet)
+cmd_boot() {
+  ensure_qemu
+  need qemu-system-x86_64
+  local disk="$WORK/disk.qcow2"
+  [ -f "$disk" ] || die "Kein Disk-Image ($disk) – erst installieren"
+
+  local ovmf_args=()
+  local ovmf_code
+  ovmf_code="$(ls /nix/store/*OVMF*/FV/OVMF_CODE.fd 2>/dev/null | head -1 || true)"
+  if [ -n "$ovmf_code" ]; then
+    local ovmf_vars="$WORK/OVMF_VARS.fd"
+    rm -f "$ovmf_vars"
+    cp "$(dirname "$ovmf_code")/OVMF_VARS.fd" "$ovmf_vars"
+    chmod u+w "$ovmf_vars"
+    ovmf_args=(
+      -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code"
+      -drive "if=pflash,format=raw,file=$ovmf_vars"
+    )
+  fi
+
+  echo "Boote installiertes System: $disk"
+  exec qemu-system-x86_64 \
+    -machine q35 -enable-kvm -cpu host -smp "$CPUS" -m "$RAM" \
+    "${ovmf_args[@]}" \
+    -drive "file=$disk,if=virtio" \
+    -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22" -device virtio-net-pci,netdev=net0 \
+    -vga std -display gtk
+}
+
 cmd_clean() {
   if [ -d "$WORK" ]; then
     du -sh "$WORK" 2>/dev/null || true
@@ -106,6 +136,7 @@ cmd_clean() {
 
 case "${1:-}" in
   iso) shift; cmd_iso "$@" ;;
+  boot) cmd_boot ;;
   clean) cmd_clean ;;
-  *) echo "Usage: $0 {iso [ISO-DATEI]|clean}" >&2; exit 2 ;;
+  *) echo "Usage: $0 {iso [ISO-DATEI]|boot|clean}" >&2; exit 2 ;;
 esac
