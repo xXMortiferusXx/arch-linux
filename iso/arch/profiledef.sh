@@ -3,15 +3,17 @@
 # Wird von mkarchiso gelesen. Basis: releng, siehe README.md.
 
 iso_name="arch-install"
-iso_label="ARCH_INSTALL_$(date +%Y%m)"
+iso_label="ARCHINST_$(date +%y%m)"
 iso_publisher="arch-linux (github.com/xXMortiferusXx)"
 iso_application="Arch Linux Installer"
 iso_version="$(date +%Y.%m.%d)"
 install_dir="arch"
 buildmodes=('iso')
+# Reihenfolge wie releng: BIOS zuerst, UEFI als El-Torito-Alt-Eintrag danach.
+# Andersherum landet der UEFI-Eintrag nicht im Katalog (OVMF faellt auf PXE zurueck).
 bootmodes=(
-  'uefi.systemd-boot'
   'bios.syslinux'
+  'uefi.systemd-boot'
 )
 arch="x86_64"
 pacman_conf="pacman.conf"
