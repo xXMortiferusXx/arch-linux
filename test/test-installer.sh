@@ -19,6 +19,20 @@ die() { echo "FEHLER: $*" >&2; exit 1; }
 
 need() { command -v "$1" >/dev/null 2>&1 || die "$1 fehlt"; }
 
+# qemu ist auf NixOS nicht zwingend installiert -> bei Bedarf aus nixpkgs holen.
+ensure_qemu() {
+  if command -v qemu-system-x86_64 >/dev/null 2>&1 && command -v qemu-img >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ -n "${ARCH_TEST_IN_NIX_SHELL:-}" ]; then
+    die "qemu-system-x86_64 fehlt auch im nix shell"
+  fi
+  command -v nix >/dev/null 2>&1 || die "qemu fehlt und nix ist nicht verfuegbar"
+  echo "qemu fehlt – starte ueber 'nix shell nixpkgs#qemu_full' (einmaliger Download)"
+  export ARCH_TEST_IN_NIX_SHELL=1
+  exec nix shell nixpkgs#qemu_full -c "$0" "$@"
+}
+
 find_iso() {
   local arg="${1:-}"
   if [ -n "$arg" ]; then
@@ -32,6 +46,7 @@ find_iso() {
 }
 
 cmd_iso() {
+  ensure_qemu
   need qemu-system-x86_64
   local iso; iso="$(find_iso "${1:-}")"
 
@@ -64,12 +79,12 @@ cmd_iso() {
   echo "SSH : localhost:$SSH_PORT (nach Installation)"
 
   exec qemu-system-x86_64 \
-    -enable-kvm -cpu host -smp "$CPUS" -m "$RAM" \
+    -machine q35 -enable-kvm -cpu host -smp "$CPUS" -m "$RAM" \
     "${ovmf_args[@]}" \
     -drive "file=$disk,if=virtio" \
     -cdrom "$iso" -boot d \
     -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22" -device virtio-net-pci,netdev=net0 \
-    -vga virtio -display gtk,gl=on
+    -vga virtio -display gtk
 }
 
 cmd_clean() {
