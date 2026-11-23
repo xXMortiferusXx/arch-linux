@@ -60,6 +60,17 @@ configure_base() {
   printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$host" "$host" > "$TARGET/etc/hosts"
 
   arch-chroot "$TARGET" useradd -m -G wheel -s /bin/bash "$username"
+
+  # SSH-Keys (passwortloser Zugang, z. B. aus dem Test-Host)
+  if [ -f "$profile/authorized_keys" ]; then
+    local uid gid
+    uid="$(arch-chroot "$TARGET" id -u "$username")"
+    gid="$(arch-chroot "$TARGET" id -g "$username")"
+    install -d -m 700 -o "$uid" -g "$gid" "$TARGET/home/$username/.ssh"
+    install -m 600 -o "$uid" -g "$gid" "$profile/authorized_keys" \
+      "$TARGET/home/$username/.ssh/authorized_keys"
+    ui_ok "SSH-Key fuer $username installiert"
+  fi
   arch-chroot "$TARGET" bash -c 'echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel && chmod 440 /etc/sudoers.d/wheel'
 
   arch-chroot "$TARGET" systemctl enable NetworkManager
