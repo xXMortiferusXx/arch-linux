@@ -10,6 +10,8 @@ end
 if test "$TERM" = linux
     # Textkonsole: kein Nerd-Font -> keine Icons, schlichter Prompt
     alias ls "eza --group-directories-first"
+    alias l "eza -l --group-directories-first"
+    alias la "eza -la --group-directories-first"
     alias ll "eza -lha --group-directories-first"
     alias tree "eza --tree"
     function fish_prompt
@@ -18,6 +20,8 @@ if test "$TERM" = linux
 else
     starship init fish | source
     alias ls "eza --icons --group-directories-first"
+    alias l "eza -l --icons --group-directories-first"
+    alias la "eza -la --icons --group-directories-first"
     alias ll "eza -lha --icons --group-directories-first"
     alias tree "eza --tree --icons"
 end
