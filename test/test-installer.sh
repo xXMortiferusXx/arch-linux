@@ -8,6 +8,9 @@
 # Ueberschreibbar: DISK_SIZE (Default 40G, sparse), RAM (4G), CPUS (4), SSH_PORT (2222)
 set -Eeuo pipefail
 
+# Original-Argumente merken: ensure_qemu re-execs das Skript.
+ORIG_ARGS=("$@")
+
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 WORK="${WORK:-/tmp/arch-test}"
 DISK_SIZE="${DISK_SIZE:-40G}"
@@ -30,7 +33,7 @@ ensure_qemu() {
   command -v nix >/dev/null 2>&1 || die "qemu fehlt und nix ist nicht verfuegbar"
   echo "qemu fehlt – starte ueber 'nix shell nixpkgs#qemu_full' (einmaliger Download)"
   export ARCH_TEST_IN_NIX_SHELL=1
-  exec nix shell nixpkgs#qemu_full -c "$0" "$@"
+  exec nix shell nixpkgs#qemu_full -c "$0" "${ORIG_ARGS[@]}"
 }
 
 find_iso() {
