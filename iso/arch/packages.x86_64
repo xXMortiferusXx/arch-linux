@@ -29,6 +29,8 @@ openssh
 zram-generator
 # Tastatur/Locale
 kbd
+# Roots Shell im Live-System (releng-Default: /usr/bin/zsh)
+zsh
 # Bootmedien bauen (syslinux fuer BIOS-Boot, mtools fuer EFI-Image)
 syslinux
 mtools
