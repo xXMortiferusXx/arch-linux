@@ -207,6 +207,11 @@ EOF
   install -d -m 750 "$TARGET/var/lib/noctalia-greeter"
   arch-chroot "$TARGET" chown -R greeter:greeter /var/lib/noctalia-greeter
 
+  # Der Greeter liest seine Config aus /var/lib/noctalia-greeter/greeter.toml
+  # (wie im NixOS-Modul); /etc ist nur die Quelle.
+  install -m 644 "$TARGET/etc/noctalia-greeter.toml" "$TARGET/var/lib/noctalia-greeter/greeter.toml"
+  arch-chroot "$TARGET" chown greeter:greeter /var/lib/noctalia-greeter/greeter.toml
+
   arch-chroot "$TARGET" systemctl enable greetd
   arch-chroot "$TARGET" systemctl set-default graphical.target
   ui_ok "Desktop: greetd + Noctalia-Greeter (de, ohne Uhr)"
