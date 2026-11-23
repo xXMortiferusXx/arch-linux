@@ -274,7 +274,8 @@ EOF
     . "$profile/settings.env"
   fi
   if [ -f "$TARGET/home/$username/.face" ]; then
-    setfacl -m u:greeter:x,m::r-x "$TARGET/home/$username" \
+    # setfacl im Ziel (acl gehoert dort zur Basis; im Live-ISO fehlt es)
+    arch-chroot "$TARGET" setfacl -m u:greeter:x,m::r-x "/home/$username" \
       || ui_warn "setfacl fuer /home/$username fehlgeschlagen"
 
     # AccountsService braucht das Icon explizit (nicht nur ~/.face), sonst

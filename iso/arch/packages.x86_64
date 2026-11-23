@@ -10,6 +10,7 @@ mkinitcpio-nfs-utils
 arch-install-scripts
 pacman
 sudo
+acl
 networkmanager
 wpa_supplicant
 curl

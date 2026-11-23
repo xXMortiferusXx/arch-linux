@@ -4,6 +4,7 @@
 
 # --- System ---------------------------------------------------------------
 sudo
+acl
 iptables
 archlinux-keyring
 gnupg

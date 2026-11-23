@@ -118,6 +118,8 @@ configure_base() {
   if [ -d "$profile/home" ]; then
     cp -a "$profile/home/." "$TARGET/home/$username/"
     arch-chroot "$TARGET" chown -R "$username:$username" "/home/$username"
+    # cp -a uebernimmt auch den Modus des Quellverzeichnisses -> zuruecksetzen
+    chmod 750 "$TARGET/home/$username"
     ui_ok "Home-Configs kopiert"
   fi
 
