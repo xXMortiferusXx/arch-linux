@@ -12,6 +12,7 @@ install_extras() {
   extras_nvidia "$profile"
   extras_desktop "$profile"
   extras_gaming "$profile"
+  extras_system
 
   if [ -x "$profile/post.sh" ]; then
     ui_step "Host-Post-Skript"
@@ -211,9 +212,32 @@ EOF
   ui_ok "Desktop: greetd + Noctalia-Greeter (de, ohne Uhr)"
 }
 
-# Gaming-Stack (Pakete stehen in packages.list; hier nur Host-Feinschliff).
+# Gaming-Stack: Basis aus packages.list, Nischen-Tools aus chaotic.
 extras_gaming() {
   ui_step "Gaming"
-  ui_info "Steam/Lutris/gamescope/mangohud kommen aus packages.list"
-  ui_info "Heroic/ProtonPlus/lsfg-vk: TODO (chaotic-Pakete ergaenzen)"
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm \
+    heroic-games-launcher-bin protonplus lsfg-vk-git \
+    || die "Gaming-Pakete (chaotic) nicht installierbar"
+  ui_ok "Heroic, ProtonPlus, lsfg-vk installiert"
+}
+
+# System-Tuning: accounts-daemon (Greeter-Userliste), ananicy-cpp.
+extras_system() {
+  ui_step "System-Tuning"
+
+  arch-chroot "$TARGET" systemctl enable accounts-daemon.service
+
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm ananicy-rules-git \
+    || ui_warn "ananicy-rules-git nicht verfuegbar – nur ananicy-cpp"
+  install -d -m 755 "$TARGET/etc/ananicy.d"
+  cat > "$TARGET/etc/ananicy.d/00-defaults.conf" <<'EOF'
+check_freq = 15
+loglevel = "warn"
+log_applied_rule = false
+cgroup_realtime_workaround = false
+apply_cgroup = false
+EOF
+  arch-chroot "$TARGET" systemctl enable ananicy-cpp.service
+
+  ui_ok "accounts-daemon + ananicy-cpp aktiv"
 }

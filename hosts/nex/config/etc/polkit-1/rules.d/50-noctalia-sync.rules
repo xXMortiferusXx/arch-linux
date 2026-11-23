@@ -1,0 +1,13 @@
+// Passwortloser Greeter-Sync (Pendant zu passwordlessSyncUsers in NixOS):
+// nur der eng gefasste Sync-Aufruf des Greeter-Helfers, nur lokal/aktiv,
+// nur fuer die genannten Benutzer.
+polkit.addRule(function(action, subject) {
+  var allowedUsers = ["mortiferus"];
+  if (action.id == "org.noctalia.greeter.sync-appearance" &&
+      action.lookup("program") == "/usr/bin/noctalia-greeter-apply-appearance" &&
+      action.lookup("user") == "root" &&
+      subject.local && subject.active &&
+      allowedUsers.indexOf(subject.user) >= 0) {
+    return polkit.Result.YES;
+  }
+});

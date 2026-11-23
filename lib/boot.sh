@@ -8,10 +8,17 @@ TARGET=${TARGET:-/mnt}
 
 install_boot() {
   local disk="$1"
+  local profile="${2:-}"
   local root_uuid
 
   root_uuid="$(blkid -s UUID -o value "$PART_ROOT")"
   [ -n "$root_uuid" ] || die "UUID von $PART_ROOT nicht lesbar"
+
+  # Host-spezifische Kernel-Parameter (optional): hosts/<host>/kernel-cmdline
+  local extra_cmdline=""
+  if [ -n "$profile" ] && [ -f "$profile/kernel-cmdline" ]; then
+    extra_cmdline="$(tr '\n' ' ' < "$profile/kernel-cmdline" | sed 's/[[:space:]]*$//')"
+  fi
 
   install -d "$TARGET/etc/default"
   cat > "$TARGET/etc/default/grub" <<EOF
@@ -20,7 +27,7 @@ GRUB_TIMEOUT=5
 GRUB_TIMEOUT_STYLE=menu
 GRUB_DISTRIBUTOR="Arch"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet loglevel=3"
-GRUB_CMDLINE_LINUX="root=UUID=${root_uuid} rootflags=subvol=@ rw"
+GRUB_CMDLINE_LINUX="root=UUID=${root_uuid} rootflags=subvol=@ rw ${extra_cmdline}"
 GRUB_PRELOAD_MODULES="part_gpt btrfs"
 GRUB_DISABLE_OS_PROBER=true
 EOF

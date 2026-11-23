@@ -50,3 +50,8 @@ mangohud
 lib32-mangohud
 gamemode
 lib32-gamemode
+polkit
+accountsservice
+kitty-terminfo
+scx-scheds
+ananicy-cpp

@@ -82,6 +82,13 @@ configure_base() {
     ui_ok "Host-Configs kopiert"
   fi
 
+  # Home-Dotfiles des Hosts (Umbriel, Noctalia, GTK/Qt, nvim ...)
+  if [ -d "$profile/home" ]; then
+    cp -a "$profile/home/." "$TARGET/home/$username/"
+    arch-chroot "$TARGET" chown -R "$username:$username" "/home/$username"
+    ui_ok "Home-Configs kopiert"
+  fi
+
   ui_ok "Grundkonfiguration ($host, $tz, $keymap)"
 }
 

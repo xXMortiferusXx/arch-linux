@@ -141,7 +141,7 @@ ui_step "Grundkonfiguration"
 configure_base "$HOST" "$PROFILE"
 
 ui_step "Bootloader"
-install_boot "$DISK"
+install_boot "$DISK" "$PROFILE"
 
 ui_step "Extras (NVIDIA, Desktop, Snapshots)"
 install_extras "$PROFILE"
