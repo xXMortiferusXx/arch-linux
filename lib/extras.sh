@@ -16,6 +16,18 @@ install_extras() {
     ui_step "Host-Post-Skript"
     "$profile/post.sh" "$TARGET"
   fi
+
+  extras_snap_pac
+}
+
+# snap-pac zuletzt: sein pacman-Hook braucht snapperd (DBus), das im chroot
+# nicht laeuft. Mit leerem hookdir installieren, damit der Hook nicht feuert.
+extras_snap_pac() {
+  ui_step "snap-pac"
+  install -d "$TARGET/tmp/nohooks"
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm --hookdir /tmp/nohooks snap-pac
+  rm -rf "$TARGET/tmp/nohooks"
+  ui_ok "snap-pac installiert (Pre/Post-Snapshots ab dem ersten Boot)"
 }
 
 # snapper nur fuer @ (System). /home, /gaming und /var/* sind eigene
@@ -52,9 +64,6 @@ EMPTY_PRE_POST_CLEANUP="yes"
 EMPTY_PRE_POST_MIN_AGE="1800"
 CFG
 
-  # snap-pac erst jetzt installieren: sein pacman-Hook wuerde sonst waehrend
-  # des pacstrap ohne snapper-Config laufen ("fatal library error").
-  arch-chroot "$TARGET" pacman -S --needed --noconfirm snap-pac
   arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
 
   ui_ok "snapper: / (NUMBER_LIMIT=10, keine Timeline), snap-pac aktiv"
@@ -131,8 +140,12 @@ extras_desktop() {
     umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git \
     || die "Desktop-Pakete (chaotic) nicht installierbar"
 
-  # Greeter-User + greetd
-  arch-chroot "$TARGET" useradd --system --user-group --home /var/lib/noctalia-greeter --shell /usr/bin/nologin greeter 2>/dev/null || true
+  # Greeter-User + greetd (User explizit anlegen, Fehler nicht verschlucken)
+  if ! arch-chroot "$TARGET" id greeter >/dev/null 2>&1; then
+    arch-chroot "$TARGET" groupadd --system greeter
+    arch-chroot "$TARGET" useradd --system -g greeter -d /var/lib/noctalia-greeter -s /usr/bin/nologin greeter
+  fi
+  arch-chroot "$TARGET" id greeter >/dev/null 2>&1 || die "greeter-User konnte nicht angelegt werden"
   install -d -o 0 -g 0 -m 755 "$TARGET/etc/greetd"
   cat > "$TARGET/etc/greetd/config.toml" <<'EOF'
 [terminal]
