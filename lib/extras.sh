@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 # Host-Extras: Snapshots, NVIDIA/PRIME, Desktop (Umbriel/Noctalia), Gaming.
-# Aktuell Geruest: die Funktionen sind bewusst noch leer, damit Phase 0
-# (bootet + SSH) unabhaengig von Phase 2-4 getestet werden kann.
 # shellcheck shell=bash
 
 TARGET=${TARGET:-/mnt}
@@ -20,33 +18,130 @@ install_extras() {
   fi
 }
 
-# snapper nur fuer @ (System), nicht /home oder /gaming.
+# snapper nur fuer @ (System). /home, /gaming und /var/* sind eigene
+# Subvolumes und damit automatisch ausgenommen.
 extras_snapshots() {
-  ui_info "Snapshots: snapper + snap-pac (TODO Phase 4)"
-  # arch-chroot "$TARGET" pacman -S --needed --noconfirm snapper snap-pac
-  # arch-chroot "$TARGET" snapper -c root create-config /
-  #   -> NUMBER_LIMIT setzen, TIMELINE_CREATE=no
+  ui_step "Snapshots (snapper)"
+  arch-chroot "$TARGET" snapper -c root create-config /
+  local cfg="$TARGET/etc/snapper/configs/root"
+  [ -f "$cfg" ] || die "snapper-Config fehlt: $cfg"
+
+  sed -i \
+    -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' \
+    -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="10"/' \
+    -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="5"/' \
+    "$cfg"
+
+  # snap-pac legt Pre/Post-Snapshots bei jeder pacman-Transaktion an.
+  arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
+  ui_ok "snapper: / (NUMBER_LIMIT=10), snap-pac aktiv"
 }
 
-# NVIDIA-Repo + PRIME/Dynamic Boost (TODO Phase 2).
+# NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.
 extras_nvidia() {
-  ui_info "NVIDIA/PRIME (TODO Phase 2)"
-  # pacman -S nvidia-open-dkms nvidia-prime nvidia-utils libva-nvidia-driver
-  # /etc/nvidia/nvidia-application-profiles-rc.d/50-vram-fix.json
-  # /etc/environment: __GL_VRR_ALLOWED, LIBVA_DRIVER_NAME=radeonsi ...
+  ui_step "NVIDIA/PRIME"
+  # Env fuer die ganze Session (iGPU treibt das Display, dGPU per prime-run).
+  cat > "$TARGET/etc/environment" <<'EOF'
+# Compositor/Display laeuft auf der iGPU (radeonsi)
+LIBVA_DRIVER_NAME=radeonsi
+VDPAU_DRIVER=radeonsi
+# VRR nur fuer prime-run-Spiele
+__GL_VRR_ALLOWED=1
+EOF
+
+  # VRAM-Heap-Fix fuer Electron-/GPU-Apps (GLVidHeapReuseRatio=0)
+  install -d "$TARGET/etc/nvidia/nvidia-application-profiles-rc.d"
+  cat > "$TARGET/etc/nvidia/nvidia-application-profiles-rc.d/50-vram-fix.json" <<'EOF'
+{
+  "rules": [
+    { "pattern": { "feature": "procname", "matches": "umbriel" }, "profile": "No VidMem Reuse" },
+    { "pattern": { "feature": "procname", "matches": "steamwebhelper" }, "profile": "No VidMem Reuse" },
+    { "pattern": { "feature": "procname", "matches": "Discord" }, "profile": "No VidMem Reuse" },
+    { "pattern": { "feature": "procname", "matches": "vesktop" }, "profile": "No VidMem Reuse" },
+    { "pattern": { "feature": "procname", "matches": "heroic" }, "profile": "No VidMem Reuse" }
+  ],
+  "profiles": [
+    { "name": "No VidMem Reuse", "settings": [ { "key": "GLVidHeapReuseRatio", "value": 0 } ] }
+  ]
+}
+EOF
+
+  # Dynamic Boost (115 -> 130 W)
+  arch-chroot "$TARGET" systemctl enable nvidia-powerd
+
+  # Offload-Wrapper: setzt zusaetzlich VK_DRIVER_FILES, damit der Vulkan-Loader
+  # die dGPU nimmt (NVIDIA bringt hier keine Layer mit).
+  cat > "$TARGET/usr/local/bin/nvidia-offload" <<'EOF'
+#!/bin/sh
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __NV_PRIME_RENDER_OFFLOAD_PROVIDER=NVIDIA-G0
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/nvidia_icd.json
+exec "$@"
+EOF
+  chmod 755 "$TARGET/usr/local/bin/nvidia-offload"
+
+  ui_ok "NVIDIA: Env, VRAM-Profile, nvidia-powerd, nvidia-offload"
 }
 
-# Umbriel + Noctalia + Greeter via chaotic-aur, greetd-Session (TODO Phase 3).
+# Chaotic-AUR + Umbriel/Noctalia/Greeter + greetd.
 extras_desktop() {
-  ui_info "Desktop Umbriel/Noctalia/Greeter (TODO Phase 3)"
-  # pacman -S greetd
-  # chaotic: umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git
-  # /etc/greetd/config.toml + Greeter-TOML
+  ui_step "Desktop (chaotic-aur, Umbriel/Noctalia)"
+
+  arch-chroot "$TARGET" pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com >/dev/null 2>&1 \
+    || die "chaotic-aur: Key nicht abrufbar"
+  arch-chroot "$TARGET" pacman-key --lsign-key 3056513887B78AEB >/dev/null 2>&1 \
+    || die "chaotic-aur: Key nicht signierbar"
+
+  arch-chroot "$TARGET" pacman -U --noconfirm \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst' >/dev/null \
+    || die "chaotic-aur: keyring/mirrorlist nicht installierbar"
+
+  if ! grep -q '^\[chaotic-aur\]' "$TARGET/etc/pacman.conf"; then
+    printf '\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist\n' >> "$TARGET/etc/pacman.conf"
+  fi
+  arch-chroot "$TARGET" pacman -Sy --noconfirm >/dev/null
+
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm \
+    umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git \
+    || die "Desktop-Pakete (chaotic) nicht installierbar"
+
+  # Greeter-User + greetd
+  arch-chroot "$TARGET" useradd --system --home /var/lib/noctalia-greeter --shell /usr/bin/nologin greeter 2>/dev/null || true
+  install -d -o 0 -g 0 -m 755 "$TARGET/etc/greetd"
+  cat > "$TARGET/etc/greetd/config.toml" <<'EOF'
+[terminal]
+vt = 1
+
+[default_session]
+command = "noctalia-greeter-session"
+user = "greeter"
+EOF
+
+  # Greeter-Config (deutsche Tastatur, keine Uhr)
+  install -d -o 0 -g 0 -m 755 "$TARGET/etc"
+  cat > "$TARGET/etc/noctalia-greeter.toml" <<'EOF'
+[keyboard]
+layout = "de"
+
+[appearance]
+password_style = "random"
+
+[clock]
+enabled = false
+EOF
+  install -d -o 1000 -g 1000 -m 750 "$TARGET/var/lib/noctalia-greeter" 2>/dev/null || true
+
+  arch-chroot "$TARGET" systemctl enable greetd
+  arch-chroot "$TARGET" systemctl set-default graphical.target
+  ui_ok "Desktop: greetd + Noctalia-Greeter (de, ohne Uhr)"
 }
 
-# Steam/Proton/Lutris/Heroic/ProtonPlus/gamescope/mangohud (TODO Phase 4).
+# Gaming-Stack (Pakete stehen in packages.list; hier nur Host-Feinschliff).
 extras_gaming() {
-  ui_info "Gaming-Stack (TODO Phase 4)"
-  # pacman -S steam lutris gamescope mangohud gamemode
-  # chaotic: heroic-games-launcher-bin protonplus lsfg-vk-git
+  ui_step "Gaming"
+  ui_info "Steam/Lutris/gamescope/mangohud kommen aus packages.list"
+  ui_info "Heroic/ProtonPlus/lsfg-vk: TODO (chaotic-Pakete ergaenzen)"
 }

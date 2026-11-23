@@ -4,6 +4,8 @@
 
 # --- System ---------------------------------------------------------------
 sudo
+archlinux-keyring
+gnupg
 networkmanager
 openssh
 btrfs-progs
