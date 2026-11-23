@@ -28,6 +28,10 @@ install -Dm644 /src/install.sh /build/airootfs/usr/local/share/install.sh
 chmod +x /build/airootfs/usr/local/bin/install-arch
 
 echo "== mkarchiso =="
+# mkarchiso merkt sich erledigte Schritte als /work/build.*-Marker und ueberspringt
+# sie danach komplett (auch geaenderte Profile!). Fuer reproduzierbare Builds
+# daher das Arbeitsverzeichnis leeren.
+rm -rf -- /work/*
 mkarchiso -v -w /work -o /out /build
 
 echo "== Ergebnis =="
