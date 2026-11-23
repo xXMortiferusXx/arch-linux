@@ -3,6 +3,11 @@ set -g fish_greeting ""
 zoxide init fish | source
 starship init fish | source
 
+# fastfetch beim Start (wie in modules/programs/fastfetch.nix)
+if test -f /etc/fastfetch/config.jsonc
+    fastfetch --config /etc/fastfetch/config.jsonc
+end
+
 alias ls "eza --icons --group-directories-first"
 alias ll "eza -lha --icons --group-directories-first"
 alias tree "eza --tree --icons"
