@@ -363,8 +363,8 @@ extras_services() {
 
   # Zeit: chrony statt systemd-timesyncd
   arch-chroot "$TARGET" systemctl disable systemd-timesyncd.service >/dev/null 2>&1 || true
-  arch-chroot "$TARGET" systemctl enable chrony.service >/dev/null 2>&1 \
-    || ui_warn "chrony.service nicht aktivierbar"
+  arch-chroot "$TARGET" systemctl enable chronyd.service >/dev/null 2>&1 \
+    || ui_warn "chronyd.service nicht aktivierbar"
 
   # Bluetooth nicht automatisch einschalten (wie powerOnBoot = false)
   if [ -f "$TARGET/etc/bluetooth/main.conf" ]; then
