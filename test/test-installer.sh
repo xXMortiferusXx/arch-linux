@@ -40,12 +40,23 @@ cmd_iso() {
   [ -f "$disk" ] || qemu-img create -f qcow2 "$disk" "$DISK_SIZE" >/dev/null
 
   local ovmf_args=()
-  local ovmf_code
+  local ovmf_code ovmf_vars
   ovmf_code="$(ls /nix/store/*OVMF*/FV/OVMF_CODE.fd 2>/dev/null | head -1 || true)"
+  if [ -z "$ovmf_code" ] && command -v nix >/dev/null 2>&1; then
+    echo "OVMF fehlt im Store – baue nixpkgs#OVMF.fd (einmalig)"
+    local ovmf_dir
+    ovmf_dir="$(nix build --no-link --print-out-paths nixpkgs#OVMF.fd 2>/dev/null | tail -1 || true)"
+    [ -n "$ovmf_dir" ] && ovmf_code="$ovmf_dir/FV/OVMF_CODE.fd"
+  fi
   if [ -n "$ovmf_code" ]; then
-    ovmf_args=(-drive "if=pflash,format=raw,readonly=on,file=$ovmf_code")
+    ovmf_vars="$WORK/OVMF_VARS.fd"
+    [ -f "$ovmf_vars" ] || cp "$(dirname "$ovmf_code")/OVMF_VARS.fd" "$ovmf_vars"
+    ovmf_args=(
+      -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code"
+      -drive "if=pflash,format=raw,file=$ovmf_vars"
+    )
   else
-    echo "Hinweis: kein OVMF gefunden – UEFI-Boot ggf. nicht moeglich" >&2
+    echo "Hinweis: kein OVMF gefunden – Boot im BIOS-Modus (syslinux)" >&2
   fi
 
   echo "ISO : $iso"
