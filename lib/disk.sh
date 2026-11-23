@@ -24,12 +24,22 @@ disk_wipe() {
          --new=1:0:+1G  --typecode=1:ef00 --change-name=1:ESP \
          --new=2:0:0    --typecode=2:8300 --change-name=2:ARCH \
          "$dev"
-  partprobe "$dev"
-  sleep 1
+  partprobe "$dev" 2>/dev/null || true
+  udevadm settle 2>/dev/null || true
 
-  PART_ESP="$(lsblk -npo NAME,TYPE "$dev" | awk '$2=="part"{print $1}' | head -1)"
-  PART_ROOT="$(lsblk -npo NAME,TYPE "$dev" | awk '$2=="part"{print $1}' | tail -1)"
-  [ -b "$PART_ESP" ] && [ -b "$PART_ROOT" ] || die "Partitionen nicht erkannt ($dev)"
+  # -r (raw) ist wichtig: ohne Raw-Modus setzt lsblk Baumzeichen vor die Namen.
+  local parts=() i
+  for i in $(seq 1 20); do
+    mapfile -t parts < <(lsblk -nrpo NAME,TYPE "$dev" | awk '$2=="part"{print $1}')
+    [ "${#parts[@]}" -ge 2 ] && break
+    sleep 0.5
+  done
+  PART_ESP="${parts[0]:-}"
+  PART_ROOT="${parts[1]:-}"
+  if [ ! -b "$PART_ESP" ] || [ ! -b "$PART_ROOT" ]; then
+    lsblk -o NAME,SIZE,TYPE "$dev" >&2 || true
+    die "Partitionen nicht erkannt ($dev)"
+  fi
   ui_ok "Partitionen: $PART_ESP (ESP), $PART_ROOT (root)"
 }
 
