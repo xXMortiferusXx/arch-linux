@@ -1,0 +1,8 @@
+#!/bin/sh
+# aus modules/hardware/legion.nix: Akku-Ladung auf 60 % begrenzen.
+# Pfad variiert je Modell -> per Glob suchen, ohne Treffer sauber beenden.
+for f in /sys/bus/platform/drivers/ideapad_acpi/VPC*/conservation_mode; do
+  [ -e "$f" ] || continue
+  echo 1 > "$f" 2>/dev/null && exit 0
+done
+exit 0

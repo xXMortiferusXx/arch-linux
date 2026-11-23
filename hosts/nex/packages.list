@@ -34,6 +34,7 @@ chrony
 colord
 cups
 cups-pk-helper
+cups-browsed
 sane
 sane-airscan
 nvidia-settings
@@ -51,6 +52,8 @@ curl
 wget
 jq
 less
+acpid
+logrotate
 nano
 vim
 htop

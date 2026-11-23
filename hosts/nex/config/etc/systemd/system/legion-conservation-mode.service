@@ -1,0 +1,11 @@
+[Unit]
+Description=Lenovo Legion Battery Conservation Mode (60%)
+After=systemd-modules-load.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/legion-conservation-mode
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

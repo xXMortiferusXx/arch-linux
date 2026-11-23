@@ -335,7 +335,12 @@ extras_apps() {
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
     bibata-cursor-theme tela-icon-theme naps2 vinegar python-pynput \
     || ui_warn "einzelne chaotic-Apps nicht verfuegbar"
-  ui_ok "Cursor/Icon-Theme, NAPS2, Vinegar, python-pynput"
+
+  # xone: Xbox-Controller (USB-Dongle + BT) - DKMS baut im Chroot
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm \
+    xone-dkms-git xone-dongle-firmware \
+    || ui_warn "xone nicht installierbar (Xbox-Controller bleibt bei xpad)"
+  ui_ok "Cursor/Icon-Theme, NAPS2, Vinegar, python-pynput, xone"
 }
 
 # Dienste wie im NixOS-Setup (Bluetooth, Drucken, DNS-Cache, Zeit, Firmware).
@@ -346,7 +351,9 @@ extras_services() {
   for unit in bluetooth.service power-profiles-daemon.service upower.service \
               udisks2.service irqbalance.service colord.service smartd.service \
               cups.socket avahi-daemon.service avahi-daemon.socket \
-              fwupd.service fwupd-refresh.timer; do
+              fwupd.service fwupd-refresh.timer acpid.service \
+              cups-browsed.service logrotate.timer systemd-oomd.service \
+              legion-conservation-mode.service; do
     arch-chroot "$TARGET" systemctl enable "$unit" >/dev/null 2>&1 \
       || ui_warn "$unit nicht aktivierbar"
   done
