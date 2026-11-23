@@ -169,7 +169,7 @@ password_style = "random"
 enabled = false
 EOF
   install -d -m 750 "$TARGET/var/lib/noctalia-greeter"
-  chown -R greeter:greeter "$TARGET/var/lib/noctalia-greeter"
+  arch-chroot "$TARGET" chown -R greeter:greeter /var/lib/noctalia-greeter
 
   arch-chroot "$TARGET" systemctl enable greetd
   arch-chroot "$TARGET" systemctl set-default graphical.target
