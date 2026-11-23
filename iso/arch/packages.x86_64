@@ -28,3 +28,6 @@ openssh
 zram-generator
 # Tastatur/Locale
 kbd
+# Bootmedien bauen (syslinux fuer BIOS-Boot, mtools fuer EFI-Image)
+syslinux
+mtools
