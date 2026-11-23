@@ -15,6 +15,9 @@ grub-btrfs
 inotify-tools
 snapper
 zram-generator
+polkit
+accountsservice
+
 # --- Werkzeuge ------------------------------------------------------------
 git
 curl
@@ -25,6 +28,7 @@ nano
 vim
 htop
 fastfetch
+
 # --- Grafik ---------------------------------------------------------------
 mesa
 vulkan-icd-loader
@@ -35,6 +39,7 @@ linux-headers
 nvidia-utils
 nvidia-prime
 libva-nvidia-driver
+
 # --- Desktop --------------------------------------------------------------
 greetd
 pipewire
@@ -42,6 +47,28 @@ pipewire-pulse
 wireplumber
 pipewire-alsa
 pipewire-jack
+firefox
+thunar
+unzip
+unrar
+7zip
+kitty-terminfo
+
+# --- Schriften ------------------------------------------------------------
+ttf-firacode-nerd
+ttf-jetbrains-mono-nerd
+noto-fonts
+noto-fonts-emoji
+tex-gyre-fonts
+
+# --- Shell ----------------------------------------------------------------
+fish
+eza
+zoxide
+bat
+fzf
+starship
+
 # --- Gaming ---------------------------------------------------------------
 steam
 lutris
@@ -50,24 +77,5 @@ mangohud
 lib32-mangohud
 gamemode
 lib32-gamemode
-polkit
-accountsservice
-kitty-terminfo
 scx-scheds
 ananicy-cpp
-firefox
-thunar
-unzip
-unrar
-7zip
-ttf-firacode-nerd
-ttf-jetbrains-mono-nerd
-noto-fonts
-noto-fonts-emoji
-tex-gyre-fonts
-fish
-eza
-zoxide
-bat
-fzf
-starship

@@ -55,8 +55,7 @@ Abnahme Phase 0: VM bootet nach der Installation und SSH ist erreichbar.
 
 ## Offene Punkte
 
-- chaotic-aur einbinden (Keyring + `[chaotic-aur]` in pacman.conf)
-- NVIDIA-Repo/PRIME-Details (Phase 2)
-- Greeter-Session + Sync (Phase 3)
+- Hardware-Test auf nex (NVIDIA/PRIME, Umbriel/Noctalia, Greeter-Sync)
+- Greeter-Theme-Sync: greift erst nach dem ersten Login (in der VM nicht testbar)
 - Drift-Check: `pacman -Qqe` gegen `hosts/<host>/packages.list`
-- ISO-Build via `mkarchiso` (Arch-Umgebung noetig)
+- GRUB-Theme + Menue-Aufraeumen (`30_uefi-firmware` deaktivieren)

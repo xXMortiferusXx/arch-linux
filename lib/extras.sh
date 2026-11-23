@@ -12,6 +12,7 @@ install_extras() {
   extras_nvidia "$profile"
   extras_desktop "$profile"
   extras_gaming "$profile"
+  extras_sunshine
   extras_system
 
   if [ -x "$profile/post.sh" ]; then
@@ -224,6 +225,27 @@ extras_gaming() {
     heroic-games-launcher-bin protonplus lsfg-vk-git \
     || die "Gaming-Pakete (chaotic) nicht installierbar"
   ui_ok "Heroic, ProtonPlus, lsfg-vk installiert"
+}
+
+# Sunshine (Game-Streaming-Host, nex-only) aus dem offiziellen LizardByte-Repo.
+# Nicht aus der AUR: das Bin-Paket dort ist gegen feste Bibliotheksversionen
+# gebaut (libicu) und bricht bei Systemupdates. LizardByte baut taeglich neu.
+# autoStart bleibt aus (wie services.sunshine.autoStart = false in NixOS);
+# das Paket setzt cap_sys_admin/cap_sys_nice selbst (Pendant zu capSysAdmin).
+extras_sunshine() {
+  ui_step "Sunshine (Game-Streaming)"
+  if ! grep -q '^\[lizardbyte\]' "$TARGET/etc/pacman.conf"; then
+    printf '\n[lizardbyte]\nSigLevel = Optional\nServer = https://github.com/LizardByte/pacman-repo/releases/latest/download\n' \
+      >> "$TARGET/etc/pacman.conf"
+  fi
+  arch-chroot "$TARGET" pacman -Sy --noconfirm >/dev/null
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm sunshine \
+    || die "sunshine (lizardbyte) nicht installierbar"
+  # uinput/uhid fuer virtuelles Gamepad (modprobe im chroot greift nicht)
+  if ! grep -q '^uinput$' "$TARGET/etc/modules-load.d/nex.conf" 2>/dev/null; then
+    printf 'uinput\nuhid\n' >> "$TARGET/etc/modules-load.d/nex.conf"
+  fi
+  ui_ok "Sunshine installiert (User-Service, nicht autostart)"
 }
 
 # System-Tuning: accounts-daemon (Greeter-Userliste), ananicy-cpp.

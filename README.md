@@ -2,13 +2,14 @@
 
 Arch-Linux-Port der NixOS-Konfiguration (`xXMortiferusXx/nix-config`).
 Ziel: derselbe Komfort – Installer-ISO mit `install-arch`, Host-Profile,
-lauter Abbruch bei Fehlern – aber mit nativen Arch-Paketen (offizielle Repos +
-chaotic-aur) statt Nix.
+lauter Abbruch bei Fehlern – aber mit nativen Arch-Paketen (offizielle Repos,
+chaotic-aur, LizardByte) statt Nix.
 
 ## Status
 
-Gerüst (Phase 0). Der Installer ist noch nicht lauffähig; die Dateien sind
-Absicht und Struktur, keine fertige Implementierung.
+Der Installer laeuft in QEMU durch: Partitionierung, btrfs-Subvolumes, pacstrap,
+GRUB (UEFI) mit Snapshot-Booteintraegen, Host- und Home-Configs, greetd.
+Ungetestet ist nur, was echte Hardware braucht (NVIDIA/PRIME, Desktop-Laufzeit).
 
 ## Struktur
 
@@ -25,8 +26,8 @@ docs/                   Entscheidungen und Portierungsnotizen
 
 ```bash
 # auf der Live-ISO
-install-arch                # holt install.sh aus main, zeigt Version + SHA256
-install-arch --host nex --disk /dev/nvme0n1
+install-arch                # fragt Host-Profil und Ziel-Datentraeger ab
+install-arch --host nex --disk /dev/nvme0n1   # nicht-interaktiv
 ```
 
 ## Konventionen
@@ -34,4 +35,4 @@ install-arch --host nex --disk /dev/nvme0n1
 - `install.sh` bricht bei jedem Fehler ab (`set -Eeuo pipefail`) – nie halb installiert weiterlaufen.
 - Destruktive Schritte verlangen eine ausdrückliche Bestätigung.
 - Host-Profile liegen unter `hosts/<name>/`; alles Hostspezifische gehört dorthin, nicht in `lib/`.
-- Kein Flatpak-Zwang: Gaming-Stack nativ (Arch-Repos + chaotic-aur).
+- Kein Flatpak-Zwang: Gaming-Stack nativ (Arch-Repos, chaotic-aur, LizardByte).
