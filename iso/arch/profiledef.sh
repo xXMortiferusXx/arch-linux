@@ -16,6 +16,8 @@ bootmodes=(
   'uefi.systemd-boot'
 )
 arch="x86_64"
+# Serielle Konsole fuer den Testbetrieb (QEMU -serial file:...)
+kernel_params="console=ttyS0"
 pacman_conf="pacman.conf"
 airootfs_image_type="squashfs"
 airootfs_image_tool_options=('-comp' 'xz' '-Xbcj' 'x86' '-b' '1M' '-noappend')
