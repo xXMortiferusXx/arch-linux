@@ -318,10 +318,13 @@ log_applied_rule = false
 cgroup_realtime_workaround = false
 apply_cgroup = false
 EOF
-  arch-chroot "$TARGET" systemctl enable ananicy-cpp.service
+  arch-chroot "$TARGET" systemctl enable ananicy-cpp.service \
+    || die "ananicy-cpp.service fehlt (Paket ananicy-cpp installiert?)"
 
-  # scx_loader: scx_bpfland im Gaming-Modus (Config in hosts/nex/config)
-  arch-chroot "$TARGET" systemctl enable scx_loader.service
+  # scx_loader: scx_bpfland im Gaming-Modus (Config in hosts/nex/config).
+  # Der Loader steckt in scx-tools, nicht in scx-scheds.
+  arch-chroot "$TARGET" systemctl enable scx_loader.service \
+    || die "scx_loader.service fehlt (Paket scx-tools installiert?)"
 
   # MS-Corefonts (nur chaotic)
   arch-chroot "$TARGET" pacman -S --needed --noconfirm ttf-ms-fonts \
