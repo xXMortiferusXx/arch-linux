@@ -31,6 +31,15 @@ enable_multilib() {
 gen_fstab() {
   require_cmd genfstab
   genfstab -U "$TARGET" >> "$TARGET/etc/fstab"
+
+  # Spiele-Platte mit nofail: fehlt/defekt -> Boot laeuft weiter (wie /home
+  # auf einer externen Platte). Fehler beim Mounten fallen im Journal auf.
+  if [ -n "${GAMING:-}" ]; then
+    awk 'BEGIN{OFS="\t"} $2=="/gaming" { for(i=4;i<=NF;i++) if($i=="defaults") $i="defaults,nofail" } {print}' \
+      "$TARGET/etc/fstab" > "$TARGET/etc/fstab.tmp"
+    mv "$TARGET/etc/fstab.tmp" "$TARGET/etc/fstab"
+  fi
+
   ui_ok "fstab erzeugt"
 }
 

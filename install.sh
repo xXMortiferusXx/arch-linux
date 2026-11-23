@@ -9,6 +9,7 @@ REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 HOST=""
 DISK=""
+GAMING=""
 DRY_RUN=0
 ASSUME_YES=0
 
@@ -18,6 +19,7 @@ Arch-Installer ${SCRIPT_VERSION}
 
   --host <name>    Host-Profil aus hosts/<name> (z. B. nex)
   --disk <dev>     Ziel-Datentraeger (wird KOMPLETT geloescht, z. B. /dev/nvme0n1)
+  --gaming <dev>   vorhandene Spiele-Platte, wird nur gemountet (/gaming, bleibt erhalten)
   --yes            Rueckfragen ueberspringen (nur fuer Tests)
   --dry-run        Nur pruefen, nichts veraendern
   -h, --help       Diese Hilfe
@@ -31,6 +33,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --host) HOST="${2:-}"; shift 2 ;;
     --disk) DISK="${2:-}"; shift 2 ;;
+    --gaming) GAMING="${2:-}"; shift 2 ;;
     --yes) ASSUME_YES=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -90,13 +93,62 @@ pick_disk() {
   DISK="${devs[$((n - 1))]}"
 }
 
+# --- Vorhandene Spiele-Platte (optional, wird NICHT formatiert) -----------
+pick_gaming() {
+  local devs=() labels=() name size fstype label
+  while read -r name size fstype label; do
+    [ -n "$fstype" ] || continue
+    case "$name" in
+      zram*|loop*|sr*|ram*) continue ;;
+    esac
+    # Ziel-Datentraeger und dessen Partitionen ausschliessen
+    case "/dev/$name" in
+      "$DISK"|"$DISK"p[0-9]*|"$DISK"[0-9]*) continue ;;
+    esac
+    devs+=("/dev/$name")
+    labels+=("$(printf '%-14s %8s  %-6s %s' "/dev/$name" "$size" "$fstype" "$label")")
+  done < <(lsblk -ln -o NAME,SIZE,FSTYPE,LABEL 2>/dev/null)
+
+  if [ "${#devs[@]}" -eq 0 ]; then
+    ui_info "keine weitere Platte mit Dateisystem gefunden"
+    return 0
+  fi
+
+  ui_title "Spiele-Platte (optional, bleibt erhalten)"
+  printf '   0) keine\n'
+  local i
+  for i in "${!devs[@]}"; do
+    printf '  %2d) %s\n' "$((i + 1))" "${labels[$i]}"
+  done
+  printf '\n  Auswahl [0-%d, Enter = 0]: ' "${#devs[@]}"
+  read -r n
+  n="${n:-0}"
+  case "$n" in ''|*[!0-9]*) die "ungueltige Auswahl" ;; esac
+  [ "$n" -ge 0 ] && [ "$n" -le "${#devs[@]}" ] || die "ungueltige Auswahl"
+  [ "$n" -eq 0 ] && return 0
+  GAMING="${devs[$((n - 1))]}"
+}
+
 [ -n "$HOST" ] || pick_host
 [ -n "$DISK" ] || pick_disk
+if [ -z "$GAMING" ]; then
+  pick_gaming
+fi
 
 PROFILE="$REPO_DIR/hosts/$HOST"
 [ -d "$PROFILE" ] || die "Host-Profil nicht gefunden: $PROFILE"
 [ -f "$PROFILE/packages.list" ] || die "Paketliste fehlt: $PROFILE/packages.list"
 [ -b "$DISK" ] || die "Kein Blockgeraet: $DISK"
+
+# Spiele-Platte: nur mounten, nie formatieren.
+if [ -n "$GAMING" ]; then
+  [ -b "$GAMING" ] || die "Kein Blockgeraet: $GAMING"
+  case "$GAMING" in
+    "$DISK"|"$DISK"p[0-9]*|"$DISK"[0-9]*) die "--gaming darf nicht auf dem Ziel-Datentraeger liegen" ;;
+  esac
+  GAMING_FSTYPE="$(blkid -s TYPE -o value "$GAMING" 2>/dev/null || true)"
+  [ -n "$GAMING_FSTYPE" ] || die "Auf $GAMING ist kein Dateisystem - Spiele-Platte bleibt unformatiert"
+fi
 
 # shellcheck source=lib/disk.sh
 . "$REPO_DIR/lib/disk.sh"
@@ -112,6 +164,9 @@ TARGET=/mnt
 ui_title "Arch-Installer ${SCRIPT_VERSION}"
 ui_kv "Host" "$HOST"
 ui_kv "Ziel" "$DISK"
+if [ -n "$GAMING" ]; then
+  ui_kv "Spiele-Platte" "$GAMING ($GAMING_FSTYPE, bleibt erhalten)"
+fi
 ui_kv "Profil" "$PROFILE"
 [ "$DRY_RUN" = 1 ] && ui_warn "DRY-RUN: es wird nichts veraendert"
 

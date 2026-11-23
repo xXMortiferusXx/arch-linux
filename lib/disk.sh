@@ -63,7 +63,12 @@ disk_mkfs() {
   mkfs.btrfs -f -L ARCH "$PART_ROOT"
 
   mount "$PART_ROOT" /mnt
-  for sv in @ @home @gaming @snapshots @var_cache @var_tmp @var_log; do
+  # @gaming nur anlegen, wenn keine vorhandene Spiele-Platte genutzt wird
+  local sv subvols=(@ @home @snapshots @var_cache @var_tmp @var_log)
+  if [ -z "${GAMING:-}" ]; then
+    subvols+=(@gaming)
+  fi
+  for sv in "${subvols[@]}"; do
     btrfs subvolume create "/mnt/$sv"
   done
   umount /mnt
@@ -78,7 +83,12 @@ mount_target() {
   mount -o "subvol=@,$opts" "$PART_ROOT" /mnt
   mkdir -p /mnt/{home,gaming,.snapshots,var/cache,var/tmp,var/log,boot,etc}
   mount -o "subvol=@home,$opts"       "$PART_ROOT" /mnt/home
-  mount -o "subvol=@gaming,$opts"     "$PART_ROOT" /mnt/gaming
+  # Spiele-Platte: vorhandenes Dateisystem (z. B. ext4) bleibt unangetastet.
+  if [ -n "${GAMING:-}" ]; then
+    mount "$GAMING" /mnt/gaming
+  else
+    mount -o "subvol=@gaming,$opts"   "$PART_ROOT" /mnt/gaming
+  fi
   mount -o "subvol=@snapshots,$opts"  "$PART_ROOT" /mnt/.snapshots
   mount -o "subvol=@var_cache,$opts"  "$PART_ROOT" /mnt/var/cache
   mount -o "subvol=@var_tmp,$opts"    "$PART_ROOT" /mnt/var/tmp
