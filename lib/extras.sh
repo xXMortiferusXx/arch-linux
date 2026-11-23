@@ -181,6 +181,9 @@ LIBVA_DRIVER_NAME=radeonsi
 VDPAU_DRIVER=radeonsi
 # VRR nur fuer prime-run-Spiele
 __GL_VRR_ALLOWED=1
+# wlroots darf auf Software-Rendering zurueckfallen (VM, Remote, kein GPU-Zugriff).
+# Auf echter Hardware wird weiter die GPU benutzt.
+WLR_RENDERER_ALLOW_SOFTWARE=1
 EOF
 
   # VRAM-Heap-Fix fuer Electron-/GPU-Apps (GLVidHeapReuseRatio=0)
