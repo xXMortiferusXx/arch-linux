@@ -92,7 +92,7 @@ vulkan-icd-loader
 vulkan-tools
 vkbasalt
 libva-utils
-nvidia-dkms
+nvidia-open-dkms
 linux-headers
 nvidia-utils
 nvidia-prime
