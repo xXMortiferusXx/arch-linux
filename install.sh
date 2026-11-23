@@ -44,8 +44,54 @@ done
 require_root
 require_uefi
 
-[ -n "$HOST" ] || die "--host fehlt (z. B. --host nex)"
-[ -n "$DISK" ] || die "--disk fehlt (z. B. --disk /dev/nvme0n1)"
+# --- Host waehlen (falls nicht per --host) --------------------------------
+pick_host() {
+  local hosts=() d
+  for d in "$REPO_DIR"/hosts/*/; do
+    [ -d "$d" ] && hosts+=("$(basename "$d")")
+  done
+  [ "${#hosts[@]}" -gt 0 ] || die "keine Host-Profile unter hosts/"
+
+  ui_title "Host waehlen"
+  local i=1 h
+  for h in "${hosts[@]}"; do
+    printf '  %2d) %s\n' "$i" "$h"
+    i=$((i + 1))
+  done
+  printf '\n  Auswahl [1-%d]: ' "${#hosts[@]}"
+  read -r n
+  case "$n" in ''|*[!0-9]*) die "ungueltige Auswahl" ;; esac
+  [ "$n" -ge 1 ] && [ "$n" -le "${#hosts[@]}" ] || die "ungueltige Auswahl"
+  HOST="${hosts[$((n - 1))]}"
+}
+
+# --- Ziel-Datentraeger waehlen (falls nicht per --disk) -------------------
+pick_disk() {
+  local devs=() names=() sizes=() models=() name size model tran
+  while read -r name size model tran; do
+    [ -n "$name" ] || continue
+    case "$name" in
+      zram*|loop*|sr*|ram*) continue ;;
+    esac
+    devs+=("/dev/$name"); names+=("$name"); sizes+=("$size"); models+=("$model")
+  done < <(lsblk -dn -o NAME,SIZE,MODEL,TRAN | awk '{tran=$NF; $NF=""; model=""; for(i=3;i<=NF;i++) model=model (i>3?" ":"") $i; print $1, $2, model, tran}')
+
+  [ "${#devs[@]}" -gt 0 ] || die "keine Datentraeger gefunden"
+
+  ui_title "Ziel-Datentraeger waehlen (wird KOMPLETT geloescht)"
+  local i
+  for i in "${!devs[@]}"; do
+    printf '  %2d) %-12s %8s  %s\n' "$((i + 1))" "${devs[$i]}" "${sizes[$i]}" "${models[$i]}"
+  done
+  printf '\n  Auswahl [1-%d]: ' "${#devs[@]}"
+  read -r n
+  case "$n" in ''|*[!0-9]*) die "ungueltige Auswahl" ;; esac
+  [ "$n" -ge 1 ] && [ "$n" -le "${#devs[@]}" ] || die "ungueltige Auswahl"
+  DISK="${devs[$((n - 1))]}"
+}
+
+[ -n "$HOST" ] || pick_host
+[ -n "$DISK" ] || pick_disk
 
 PROFILE="$REPO_DIR/hosts/$HOST"
 [ -d "$PROFILE" ] || die "Host-Profil nicht gefunden: $PROFILE"
