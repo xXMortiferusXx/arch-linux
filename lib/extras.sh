@@ -24,9 +24,16 @@ install_extras() {
 # nicht laeuft. Mit leerem hookdir installieren, damit der Hook nicht feuert.
 extras_snap_pac() {
   ui_step "snap-pac"
-  install -d "$TARGET/tmp/nohooks"
-  arch-chroot "$TARGET" pacman -S --needed --noconfirm --hookdir /tmp/nohooks snap-pac
-  rm -rf "$TARGET/tmp/nohooks"
+  # Leerer Hookdir, damit snap-pacs post-transaction-Hook nicht feuert
+  # (snapperd/DBus fehlt im chroot). Pfad ausserhalb /tmp: arch-chroot kann
+  # /tmp ueberdecken.
+  install -d "$TARGET/etc/pacman-hooks-off"
+  if ! arch-chroot "$TARGET" pacman -S --needed --noconfirm --hookdir /etc/pacman-hooks-off snap-pac; then
+    ui_warn "snap-pac mit leerem hookdir fehlgeschlagen – installiere ohne"
+    arch-chroot "$TARGET" pacman -S --needed --noconfirm snap-pac \
+      || die "snap-pac nicht installierbar"
+  fi
+  rm -rf "$TARGET/etc/pacman-hooks-off"
   ui_ok "snap-pac installiert (Pre/Post-Snapshots ab dem ersten Boot)"
 }
 
