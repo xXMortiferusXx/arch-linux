@@ -12,12 +12,24 @@ disk_wipe() {
   require_cmd sgdisk
   wait_unbusy "$dev"
 
-  # Etwaige Mounts des Ziels loesen (Live-ISO kann Reste gemountet haben).
-  for p in "${dev}"?*; do
-    [ -b "$p" ] || continue
-    umount -R "$p" 2>/dev/null || true
-  done
+  # Reste eines frueheren Laufs loesen: /mnt rekursiv, dann alle Partitionen
+  # des Zielgeraets (auch btrfs-Subvolume-Mounts wie /mnt/home).
+  if mountpoint -q "$TARGET"; then
+    umount -R "$TARGET" 2>/dev/null || true
+  fi
+  local part
+  while read -r part; do
+    [ -b "$part" ] || continue
+    umount -R "$part" 2>/dev/null || true
+  done < <(lsblk -nrpo NAME,TYPE "$dev" | awk '$2=="part"{print $1}')
   swapoff -a 2>/dev/null || true
+  udevadm settle 2>/dev/null || true
+
+  # Wenn noch etwas vom Ziel gemountet ist, klar abbrechen statt sgdisk zu quälen.
+  if awk -v d="$dev" '$1 ~ d {found=1} END{exit !found}' /proc/mounts; then
+    grep -E "$dev" /proc/mounts >&2 || true
+    die "Ziel ist noch gemountet – bitte manuell aushaengen (umount -R $TARGET)"
+  fi
 
   sgdisk --zap-all "$dev"
   sgdisk --clear \
