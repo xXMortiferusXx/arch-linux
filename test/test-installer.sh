@@ -70,8 +70,8 @@ cmd_iso() {
     ovmf_vars="$WORK/OVMF_VARS.fd"
     if [ ! -f "$ovmf_vars" ]; then
       cp "$(dirname "$ovmf_code")/OVMF_VARS.fd" "$ovmf_vars"
-      chmod u+w "$ovmf_vars"   # Store-Datei ist read-only, QEMU braucht Schreibzugriff
     fi
+    chmod u+w "$ovmf_vars"   # Store-Datei ist read-only, QEMU braucht Schreibzugriff
     ovmf_args=(
       -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code"
       -drive "if=pflash,format=raw,file=$ovmf_vars"
