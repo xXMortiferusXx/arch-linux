@@ -90,8 +90,9 @@ sound-theme-freedesktop
 mesa
 vulkan-icd-loader
 vulkan-tools
+vkbasalt
 libva-utils
-nvidia-open-dkms
+nvidia-dkms
 linux-headers
 nvidia-utils
 nvidia-prime

@@ -353,7 +353,8 @@ extras_services() {
               cups.socket avahi-daemon.service avahi-daemon.socket \
               fwupd.service fwupd-refresh.timer acpid.service \
               cups-browsed.service logrotate.timer \
-              legion-conservation-mode.service; do
+              legion-conservation-mode.service \
+              nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service; do
     arch-chroot "$TARGET" systemctl enable "$unit" >/dev/null 2>&1 \
       || ui_warn "$unit nicht aktivierbar"
   done
