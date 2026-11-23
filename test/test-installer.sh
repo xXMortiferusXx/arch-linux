@@ -91,7 +91,7 @@ cmd_iso() {
     -drive "file=$disk,if=virtio" \
     -cdrom "$iso" -boot d \
     -netdev "user,id=net0,hostfwd=tcp::${SSH_PORT}-:22" -device virtio-net-pci,netdev=net0 \
-    -vga virtio -display gtk
+    -vga std -display gtk
 }
 
 cmd_clean() {
