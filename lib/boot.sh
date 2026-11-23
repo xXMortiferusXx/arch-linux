@@ -20,13 +20,20 @@ install_boot() {
     extra_cmdline="$(tr '\n' ' ' < "$profile/kernel-cmdline" | sed 's/[[:space:]]*$//')"
   fi
 
-  # GRUB-Theme (Hintergrund + Menue) aus hosts/<host>/boot/grub.
+  # GRUB-Theme: host-spezifisch (hosts/<host>/boot/grub), sonst shared/grub.
+  local theme_src=""
+  if [ -n "$profile" ] && [ -f "$profile/boot/grub/background.png" ]; then
+    theme_src="$profile/boot/grub"
+  elif [ -f "${REPO_DIR:-.}/shared/grub/background.png" ]; then
+    theme_src="${REPO_DIR:-.}/shared/grub"
+  fi
+
   local theme_dir="$TARGET/boot/grub/themes/unholy-angels"
   local grub_theme=""
-  if [ -n "$profile" ] && [ -f "$profile/boot/grub/background.png" ]; then
+  if [ -n "$theme_src" ]; then
     install -d "$theme_dir"
-    install -m 644 "$profile/boot/grub/background.png" "$theme_dir/background.png"
-    install -m 644 "$profile/boot/grub/theme/theme.txt" "$theme_dir/theme.txt"
+    install -m 644 "$theme_src/background.png" "$theme_dir/background.png"
+    install -m 644 "$theme_src/theme/theme.txt" "$theme_dir/theme.txt"
 
     # Schriften aus DejaVu erzeugen; die Dateinamen muessen exakt zu den
     # Namen in theme.txt passen. Ohne ttf-dejavu: Standardschrift nutzen.
