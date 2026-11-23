@@ -55,7 +55,7 @@ configure_base() {
   arch-chroot "$TARGET" locale-gen
   printf 'LANG=%s\n' "$locale" > "$TARGET/etc/locale.conf"
 
-  printf 'KEYMAP=%s\n' "$keymap" > "$TARGET/etc/vconsole.conf"
+  printf 'KEYMAP=%s\nFONT=lat9w-16\n' "$keymap" > "$TARGET/etc/vconsole.conf"
   printf '%s\n' "$host" > "$TARGET/etc/hostname"
   printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$host" "$host" > "$TARGET/etc/hosts"
 
