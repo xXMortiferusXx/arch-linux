@@ -27,5 +27,6 @@ file_permissions=(
   ["/etc/gshadow"]="0:0:400"
   ["/root"]="0:0:750"
   ["/root/.automated_script.sh"]="0:0:755"
+  ["/root/.zlogin"]="0:0:644"
   ["/usr/local/bin/install-arch"]="0:0:755"
 )
