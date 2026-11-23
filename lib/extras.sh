@@ -109,7 +109,7 @@ extras_desktop() {
     || die "Desktop-Pakete (chaotic) nicht installierbar"
 
   # Greeter-User + greetd
-  arch-chroot "$TARGET" useradd --system --home /var/lib/noctalia-greeter --shell /usr/bin/nologin greeter 2>/dev/null || true
+  arch-chroot "$TARGET" useradd --system --user-group --home /var/lib/noctalia-greeter --shell /usr/bin/nologin greeter 2>/dev/null || true
   install -d -o 0 -g 0 -m 755 "$TARGET/etc/greetd"
   cat > "$TARGET/etc/greetd/config.toml" <<'EOF'
 [terminal]
@@ -132,7 +132,8 @@ password_style = "random"
 [clock]
 enabled = false
 EOF
-  install -d -o 1000 -g 1000 -m 750 "$TARGET/var/lib/noctalia-greeter" 2>/dev/null || true
+  install -d -m 750 "$TARGET/var/lib/noctalia-greeter"
+  chown -R greeter:greeter "$TARGET/var/lib/noctalia-greeter"
 
   arch-chroot "$TARGET" systemctl enable greetd
   arch-chroot "$TARGET" systemctl set-default graphical.target
