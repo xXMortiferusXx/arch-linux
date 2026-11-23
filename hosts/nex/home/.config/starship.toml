@@ -1,0 +1,10 @@
+# aus modules/programs/shell.nix
+add_newline = false
+format = "$directory$git_branch$git_status$python$character"
+
+[directory]
+style = "bold blue"
+
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"

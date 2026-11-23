@@ -73,6 +73,11 @@ configure_base() {
   fi
   arch-chroot "$TARGET" bash -c 'echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel && chmod 440 /etc/sudoers.d/wheel'
 
+  # Login-Shell auf fish (falls installiert)
+  if arch-chroot "$TARGET" test -x /usr/bin/fish; then
+    arch-chroot "$TARGET" usermod -s /usr/bin/fish "$username"
+  fi
+
   arch-chroot "$TARGET" systemctl enable NetworkManager
   arch-chroot "$TARGET" systemctl enable sshd
 

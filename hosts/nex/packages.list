@@ -65,3 +65,9 @@ ttf-jetbrains-mono-nerd
 noto-fonts
 noto-fonts-emoji
 tex-gyre-fonts
+fish
+eza
+zoxide
+bat
+fzf
+starship
