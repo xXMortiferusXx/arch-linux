@@ -40,45 +40,32 @@ extras_snap_pac() {
 # snapper nur fuer @ (System). /home, /gaming und /var/* sind eigene
 # Subvolumes und damit automatisch ausgenommen.
 #
-# Die Config wird beim ERSTEN BOOT von snapper selbst erzeugt: "create-config"
-# braucht snapperd per DBus, das im arch-chroot nicht laeuft. Ein handgeschriebenes
-# Config-File hat snapper nicht akzeptiert.
+# Zwei Punkte, die snapper auf Arch braucht:
+#   1) --no-dbus: create-config ohne snapperd (chroot hat kein DBus)
+#   2) /etc/conf.d/snapper mit SNAPPER_CONFIGS: ohne Registrierung findet die
+#      CLI keine Config ("Konfiguration Root ist nicht vorhanden") und die
+#      systemd-Timer laufen leer.
 extras_snapshots() {
   ui_step "Snapshots (snapper)"
 
-  cat > "$TARGET/usr/local/bin/snapper-init" <<'SH'
-#!/bin/sh
-# Einmalige Initialisierung der snapper-Config fuer / (laeuft nach dem Boot).
-set -e
-[ -f /etc/snapper/configs/root ] && exit 0
-snapper -c root create-config /
-sed -i \
-  -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' \
-  -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="10"/' \
-  -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="5"/' \
-  /etc/snapper/configs/root
-systemctl enable --now snapper-cleanup.timer
-SH
-  chmod 755 "$TARGET/usr/local/bin/snapper-init"
+  arch-chroot "$TARGET" snapper --no-dbus create-config / </dev/null >/dev/null 2>&1 || true
 
-  cat > "$TARGET/etc/systemd/system/snapper-init.service" <<'UNIT'
-[Unit]
-Description=Initialize snapper config for /
-After=local-fs.target dbus.service
-ConditionPathExists=!/etc/snapper/configs/root
+  local cfg="$TARGET/etc/snapper/configs/root"
+  [ -f "$cfg" ] || die "snapper: create-config hat keine Config erzeugt"
 
-[Service]
-Type=oneshot
-ExecStart=/usr/local/bin/snapper-init
-RemainAfterExit=yes
+  sed -i \
+    -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' \
+    -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="10"/' \
+    -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="5"/' \
+    -e 's/^ALLOW_GROUPS=.*/ALLOW_GROUPS="wheel"/' \
+    "$cfg"
 
-[Install]
-WantedBy=multi-user.target
-UNIT
+  install -d -m 755 "$TARGET/etc/conf.d"
+  printf 'SNAPPER_CONFIGS="root"\n' > "$TARGET/etc/conf.d/snapper"
 
-  arch-chroot "$TARGET" systemctl enable snapper-init.service
   arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
-  ui_ok "snapper: Initialisierung beim ersten Boot (NUMBER_LIMIT=10, keine Timeline)"
+  arch-chroot "$TARGET" systemctl disable snapper-timeline.timer >/dev/null 2>&1 || true
+  ui_ok "snapper: / (NUMBER_LIMIT=10, keine Timeline), snap-pac"
 }
 
 # NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.
