@@ -171,8 +171,6 @@ EOF
 extras_desktop() {
   ui_step "Desktop (chaotic-aur, Umbriel/Noctalia)"
 
-  extras_chaotic
-
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
     umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git \
     || die "Desktop-Pakete (chaotic) nicht installierbar"
