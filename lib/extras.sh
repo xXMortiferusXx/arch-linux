@@ -486,10 +486,13 @@ EOF
   arch-chroot "$TARGET" systemctl enable ananicy-cpp.service \
     || die "ananicy-cpp.service fehlt (Paket ananicy-cpp installiert?)"
 
-  # scx_loader: scx_bpfland im Gaming-Modus (Config in hosts/nex/config).
-  # Der Loader steckt in scx-tools, nicht in scx-scheds.
-  arch-chroot "$TARGET" systemctl enable scx_loader.service \
-    || die "scx_loader.service fehlt (Paket scx-tools installiert?)"
+  # scx_loader nur auf Hosts, die scx-tools installiert haben (nex: ja,
+  # lion: nein - der Desktop nutzt nur ananicy). Der Loader steckt in
+  # scx-tools, nicht in scx-scheds.
+  if arch-chroot "$TARGET" pacman -Qq scx-tools >/dev/null 2>&1; then
+    arch-chroot "$TARGET" systemctl enable scx_loader.service \
+      || die "scx_loader.service fehlt (Paket scx-tools installiert?)"
+  fi
 
   # MS-Corefonts (nur chaotic)
   arch-chroot "$TARGET" pacman -S --needed --noconfirm ttf-ms-fonts \
