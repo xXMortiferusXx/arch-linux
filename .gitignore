@@ -1,0 +1,11 @@
+# ISOs und Build-Artefakte
+*.iso
+*.iso.sha256
+iso/arch/work/
+iso/arch/out/
+test/*.img
+test/*.qcow2
+
+# QEMU
+*.qcow2
+*.raw

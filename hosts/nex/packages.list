@@ -1,0 +1,46 @@
+# Host-Profil nex (Legion 5, Ryzen 5 5600H + RTX 3070 Mobile, PRIME).
+# Eine Paketzeile pro Eintrag; # ist Kommentar. Basis (base, linux,
+# linux-firmware) kommt aus lib/base.sh und gehoert nicht hierher.
+
+# --- System ---------------------------------------------------------------
+sudo
+networkmanager
+openssh
+btrfs-progs
+snapper
+snap-pac
+zram-generator
+# --- Werkzeuge ------------------------------------------------------------
+git
+curl
+wget
+jq
+less
+nano
+vim
+htop
+fastfetch
+# --- Grafik ---------------------------------------------------------------
+mesa
+vulkan-icd-loader
+vulkan-tools
+libva-utils
+nvidia-open-dkms
+nvidia-utils
+nvidia-prime
+libva-nvidia-driver
+# --- Desktop --------------------------------------------------------------
+greetd
+pipewire
+pipewire-pulse
+wireplumber
+pipewire-alsa
+pipewire-jack
+# --- Gaming ---------------------------------------------------------------
+steam
+lutris
+gamescope
+mangohud
+lib32-mangohud
+gamemode
+lib32-gamemode

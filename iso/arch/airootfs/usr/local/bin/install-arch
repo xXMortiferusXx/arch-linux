@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# install-arch: holt install.sh aus main (Fallback: lokal eingebettet),
+# zeigt Version + SHA256 und startet es. Pendant zu install-nixos.
+set -Eeuo pipefail
+
+REPO="xXMortiferusXx/arch-linux"
+RAW="https://raw.githubusercontent.com/${REPO}/main/install.sh"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+
+echo
+echo "  Arch-Installer"
+echo "  ────────────────────────────────────────────"
+
+if ! curl -fsSL --max-time 30 "$RAW" -o "$TMP/install.sh"; then
+  if [ -f /usr/local/share/install.sh ]; then
+    echo "  Netzwerk nicht erreichbar – nutze eingebettete Fassung"
+    cp /usr/local/share/install.sh "$TMP/install.sh"
+  else
+    echo "  FEHLER: install.sh nicht abrufbar und keine eingebettete Fassung" >&2
+    exit 1
+  fi
+fi
+
+sha="$(sha256sum "$TMP/install.sh" | cut -d' ' -f1)"
+echo "  Quelle : ${RAW}"
+echo "  SHA256 : ${sha}"
+echo "  ────────────────────────────────────────────"
+echo
+
+exec bash "$TMP/install.sh" "$@"

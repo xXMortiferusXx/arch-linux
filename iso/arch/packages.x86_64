@@ -1,0 +1,30 @@
+# Pakete auf dem Installer-ISO (nicht im Zielsystem).
+# NetworkManager liefert nmtui; Firmware fuer WLAN (AX210) ist dabei.
+
+base
+linux
+linux-firmware
+mkinitcpio
+arch-install-scripts
+pacman
+sudo
+networkmanager
+wpasupplicant
+iwd
+curl
+ca-certificates
+git
+gdisk
+parted
+btrfs-progs
+dosfstools
+e2fsprogs
+util-linux
+nano
+vim
+less
+jq
+openssh
+zram-generator
+# Tastatur/Locale
+kbd
