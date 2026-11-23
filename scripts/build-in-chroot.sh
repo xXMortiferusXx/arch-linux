@@ -23,8 +23,10 @@ cp -a /usr/share/archiso/configs/releng /build
 cp -a /src/iso/arch/. /build/
 rm -f /build/README.md
 
-# Offline-Fallback fuer install-arch
-install -Dm644 /src/install.sh /build/airootfs/usr/local/share/install.sh
+# Offline-Fallback fuer install-arch: komplettes Repo als Tarball
+install -d /build/airootfs/usr/local/share
+tar czf /build/airootfs/usr/local/share/arch-linux.tar.gz \
+    --transform 's,^,arch-linux-main/,' -C /src .
 chmod +x /build/airootfs/usr/local/bin/install-arch
 
 echo "== mkarchiso =="

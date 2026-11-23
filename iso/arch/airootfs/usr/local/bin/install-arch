@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# install-arch: holt install.sh aus main (Fallback: lokal eingebettet),
-# zeigt Version + SHA256 und startet es. Pendant zu install-nixos.
+# install-arch: holt das Installer-Repo aus main (Fallback: im ISO eingebettet),
+# zeigt Version + SHA256 und startet install.sh. Pendant zu install-nixos.
+#
+# Es wird das komplette Repo geholt (nicht nur install.sh), weil der Installer
+# lib/ und hosts/ braucht.
 set -Eeuo pipefail
 
 REPO="xXMortiferusXx/arch-linux"
-RAW="https://raw.githubusercontent.com/${REPO}/main/install.sh"
+BRANCH="main"
+TARBALL="https://github.com/${REPO}/archive/refs/heads/${BRANCH}.tar.gz"
+EMBEDDED="/usr/local/share/arch-linux.tar.gz"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -12,20 +17,25 @@ echo
 echo "  Arch-Installer"
 echo "  ────────────────────────────────────────────"
 
-if ! curl -fsSL --max-time 30 "$RAW" -o "$TMP/install.sh"; then
-  if [ -f /usr/local/share/install.sh ]; then
+if curl -fsSL --max-time 60 "$TARBALL" -o "$TMP/repo.tar.gz"; then
+  echo "  Quelle : ${TARBALL}"
+else
+  if [ -f "$EMBEDDED" ]; then
     echo "  Netzwerk nicht erreichbar – nutze eingebettete Fassung"
-    cp /usr/local/share/install.sh "$TMP/install.sh"
+    cp "$EMBEDDED" "$TMP/repo.tar.gz"
+    echo "  Quelle : ${EMBEDDED}"
   else
-    echo "  FEHLER: install.sh nicht abrufbar und keine eingebettete Fassung" >&2
+    echo "  FEHLER: Repo nicht abrufbar und keine eingebettete Fassung" >&2
     exit 1
   fi
 fi
 
-sha="$(sha256sum "$TMP/install.sh" | cut -d' ' -f1)"
-echo "  Quelle : ${RAW}"
-echo "  SHA256 : ${sha}"
+echo "  SHA256 : $(sha256sum "$TMP/repo.tar.gz" | cut -d' ' -f1)"
 echo "  ────────────────────────────────────────────"
 echo
 
-exec bash "$TMP/install.sh" "$@"
+tar xf "$TMP/repo.tar.gz" -C "$TMP"
+dir="$(find "$TMP" -maxdepth 1 -type d -name 'arch-linux-*' | head -1)"
+[ -n "$dir" ] || { echo "  FEHLER: unerwartetes Archiv" >&2; exit 1; }
+
+exec bash "$dir/install.sh" "$@"
