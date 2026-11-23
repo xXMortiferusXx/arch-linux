@@ -39,41 +39,46 @@ extras_snap_pac() {
 
 # snapper nur fuer @ (System). /home, /gaming und /var/* sind eigene
 # Subvolumes und damit automatisch ausgenommen.
-# Die Config wird direkt geschrieben: "snapper create-config" braucht DBus
-# (snapperd), das im arch-chroot nicht laeuft.
+#
+# Die Config wird beim ERSTEN BOOT von snapper selbst erzeugt: "create-config"
+# braucht snapperd per DBus, das im arch-chroot nicht laeuft. Ein handgeschriebenes
+# Config-File hat snapper nicht akzeptiert.
 extras_snapshots() {
   ui_step "Snapshots (snapper)"
 
-  install -d -m 755 "$TARGET/etc/snapper/configs"
-  cat > "$TARGET/etc/snapper/configs/root" <<'CFG'
-SUBVOLUME="/"
-FSTYPE="btrfs"
-QGROUP=""
-SPACE_LIMIT="0.5"
-FREE_LIMIT="0.2"
-ALLOW_USERS=""
-ALLOW_GROUPS="wheel"
-SYNC_ACL="no"
-BACKGROUND_COMPARISON="yes"
-NUMBER_CLEANUP="yes"
-NUMBER_MIN_AGE="1800"
-NUMBER_LIMIT="10"
-NUMBER_LIMIT_IMPORTANT="5"
-TIMELINE_CREATE="no"
-TIMELINE_CLEANUP="yes"
-TIMELINE_MIN_AGE="1800"
-TIMELINE_LIMIT_HOURLY="0"
-TIMELINE_LIMIT_DAILY="0"
-TIMELINE_LIMIT_WEEKLY="0"
-TIMELINE_LIMIT_MONTHLY="0"
-TIMELINE_LIMIT_YEARLY="0"
-EMPTY_PRE_POST_CLEANUP="yes"
-EMPTY_PRE_POST_MIN_AGE="1800"
-CFG
+  cat > "$TARGET/usr/local/bin/snapper-init" <<'SH'
+#!/bin/sh
+# Einmalige Initialisierung der snapper-Config fuer / (laeuft nach dem Boot).
+set -e
+[ -f /etc/snapper/configs/root ] && exit 0
+snapper -c root create-config /
+sed -i \
+  -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' \
+  -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="10"/' \
+  -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="5"/' \
+  /etc/snapper/configs/root
+systemctl enable --now snapper-cleanup.timer
+SH
+  chmod 755 "$TARGET/usr/local/bin/snapper-init"
 
+  cat > "$TARGET/etc/systemd/system/snapper-init.service" <<'UNIT'
+[Unit]
+Description=Initialize snapper config for /
+After=local-fs.target dbus.service
+ConditionPathExists=!/etc/snapper/configs/root
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/snapper-init
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+  arch-chroot "$TARGET" systemctl enable snapper-init.service
   arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
-
-  ui_ok "snapper: / (NUMBER_LIMIT=10, keine Timeline), snap-pac aktiv"
+  ui_ok "snapper: Initialisierung beim ersten Boot (NUMBER_LIMIT=10, keine Timeline)"
 }
 
 # NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.
