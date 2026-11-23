@@ -49,11 +49,16 @@ MIRRORS
 # 2) Repo-Stand als Quelle einhaengen
 rm -rf "$BUILD_DIR/src"
 mkdir -p "$BUILD_DIR/src"
-rsync -a --delete "$REPO/" "$BUILD_DIR/src/"
+rsync -a --delete --exclude=iso/arch/out/ --exclude=.git/ "$REPO/" "$BUILD_DIR/src/"
+
+# Alte ISOs aus dem Build-Ausgang entfernen (sonst werden sie mitkopiert)
+rm -f "$BUILD_DIR"/out/*.iso "$BUILD_DIR"/out/*.iso.sha256
 
 # 3) Im Chroot bauen
 echo "== mkarchiso (nspawn) =="
-systemd-nspawn -D "$BUILD_DIR/root.x86_64" --privileged \
+# nspawn kennt kein --privileged (das ist podman/docker); mkarchiso braucht
+# aber volle Capabilities (mount/loop/mksquashfs).
+systemd-nspawn -D "$BUILD_DIR/root.x86_64" --capability=all \
   --bind="$BUILD_DIR/out:/out" \
   --bind="$BUILD_DIR/work:/work" \
   --bind="$BUILD_DIR/src:/src" \

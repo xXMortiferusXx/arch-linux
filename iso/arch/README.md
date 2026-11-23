@@ -14,10 +14,11 @@ cp -r /usr/share/archiso/configs/releng/. .
 | Datei | Zweck |
 |---|---|
 | `packages.x86_64` | Paketliste inkl. NetworkManager (-> `nmtui`) und Firmware |
-| `airootfs/etc/issue` | Hinweis auf `nmtui` + `install-arch` auf tty1 |
+| `airootfs/etc/issue` | Hinweis auf `nmtui` + `install-arch` (vor dem Login) |
+| `airootfs/etc/motd` | leer – ersetzt relengs Installationsanleitung |
 | `airootfs/etc/vconsole.conf` | deutsche Tastatur (`de-latin1`) |
 | `airootfs/usr/local/bin/install-arch` | holt `install.sh` aus `main`, prueft SHA256, startet |
-| `airootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf` | Root-Autologin auf tty1 |
+| `airootfs/etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf` | Root-Autologin auf der seriellen Konsole (Tests/Server) |
 
 ## Build (in einer Arch-Umgebung)
 

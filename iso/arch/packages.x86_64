@@ -6,6 +6,7 @@ linux
 linux-firmware
 mkinitcpio
 mkinitcpio-archiso
+mkinitcpio-nfs-utils
 arch-install-scripts
 pacman
 sudo
@@ -26,6 +27,8 @@ vim
 less
 jq
 openssh
+nbd
+nfs-utils
 zram-generator
 # Tastatur/Locale
 kbd

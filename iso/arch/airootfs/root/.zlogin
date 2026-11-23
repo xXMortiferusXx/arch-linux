@@ -1,5 +1,2 @@
-# Kurzer Willkommenstext statt releng-Standard (iwctl/Installation_guide
-# passen nicht zu diesem ISO: WLAN laeuft ueber NetworkManager/nmtui).
-printf '\n  Arch Linux Installer\n\n'
-printf '  WLAN        :  nmtui\n'
-printf '  Installation:  install-arch\n\n'
+# Kein zweiter Willkommenstext: /etc/issue zeigt alles Noetige vor dem Login,
+# relengs langes /etc/motd ist durch die leere Datei ersetzt.

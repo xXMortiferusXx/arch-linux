@@ -25,7 +25,11 @@ rm -f /build/README.md
 
 # Offline-Fallback fuer install-arch: komplettes Repo als Tarball
 install -d /build/airootfs/usr/local/share
+# iso/arch/out und .git nicht mitpacken: sonst wandert das zuletzt gebaute
+# ISO (bzw. die Historie) in den Offline-Tarball und das neue ISO waechst
+# mit jedem Build.
 tar czf /build/airootfs/usr/local/share/arch-linux.tar.gz \
+    --exclude=./iso/arch/out --exclude=./.git \
     --transform 's,^,arch-linux-main/,' -C /src .
 chmod +x /build/airootfs/usr/local/bin/install-arch
 
