@@ -12,6 +12,7 @@ btrfs-progs
 grub
 efibootmgr
 grub-btrfs
+inotify-tools
 snapper
 zram-generator
 # --- Werkzeuge ------------------------------------------------------------
