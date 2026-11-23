@@ -9,6 +9,7 @@ install_extras() {
 
   extras_chaotic
   extras_snapshots "$profile"
+  extras_btrfs
   extras_nvidia "$profile"
   extras_desktop "$profile"
   extras_gaming "$profile"
@@ -119,6 +120,52 @@ CONF
   arch-chroot "$TARGET" systemctl enable grub-btrfs-snapper.path
 
   ui_ok "snapper: / (NUMBER_LIMIT=10), grub-btrfs (Snapshot-Booteintraege)"
+}
+
+# Btrfs-Wartung (Pendant zu modules/system/btrfs.nix im NixOS-Repo):
+#   - Scrub monatlich: btrfs-scrub@.timer kommt von btrfs-progs
+#   - Balance woechentlich: -d usage=5, nice 19, idle I/O
+#   - fstrim woechentlich (services.fstrim)
+# Ein Pool mit Subvolumes (@, @home, @gaming, ...) -> eine Instanz fuer "/".
+extras_btrfs() {
+  ui_step "Btrfs-Wartung (Scrub/Balance/TRIM)"
+  arch-chroot "$TARGET" systemctl enable btrfs-scrub@-.timer \
+    || die "btrfs-scrub@-.timer nicht aktivierbar"
+
+  cat > "$TARGET/etc/systemd/system/btrfs-balance.service" <<'EOF'
+[Unit]
+Description=BTRFS Balance auf /
+After=btrfs-scrub@-.service
+Conflicts=shutdown.target sleep.target
+Before=shutdown.target sleep.target
+
+[Service]
+Type=oneshot
+Nice=19
+IOSchedulingClass=idle
+# nur schwach belegte Chunks umpacken (kein Voll-Balance)
+ExecStart=/usr/bin/btrfs balance start -d usage=5 /
+EOF
+
+  cat > "$TARGET/etc/systemd/system/btrfs-balance.timer" <<'EOF'
+[Unit]
+Description=Woechentlicher BTRFS Balance Timer auf /
+
+[Timer]
+OnCalendar=weekly
+AccuracySec=1d
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+  arch-chroot "$TARGET" systemctl enable btrfs-balance.timer \
+    || die "btrfs-balance.timer nicht aktivierbar"
+  arch-chroot "$TARGET" systemctl enable fstrim.timer \
+    || ui_warn "fstrim.timer nicht aktivierbar"
+
+  ui_ok "btrfs: Scrub monatlich, Balance woechentlich, fstrim woechentlich"
 }
 
 # NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.
