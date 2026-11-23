@@ -1,0 +1,21 @@
+#!/bin/sh
+# aus modules/desktop/thunar.nix (Arch-Pfade)
+set -eu
+FILE="$1"; DEST_DIR="$2"; MODE="$3"
+FILENAME=$(basename "$FILE")
+BASENAME="${FILENAME%%.*}"
+if [ "$MODE" = "tofolder" ]; then
+  OUTDIR="$DEST_DIR/$BASENAME"; mkdir -p "$OUTDIR"
+else
+  OUTDIR="$DEST_DIR"
+fi
+case "$FILE" in
+  *.zip)                  unzip -q -o "$FILE" -d "$OUTDIR" ;;
+  *.tar.gz|*.tgz)         tar -xzf "$FILE" -C "$OUTDIR" ;;
+  *.tar.bz2|*.tbz2)       tar -xjf "$FILE" -C "$OUTDIR" ;;
+  *.tar.xz|*.txz)         tar -xJf "$FILE" -C "$OUTDIR" ;;
+  *.tar)                  tar -xf "$FILE" -C "$OUTDIR" ;;
+  *.7z)                   7z x "$FILE" -o"$OUTDIR" -y ;;
+  *.rar)                  unrar x -o+ "$FILE" "$OUTDIR/" ;;
+  *) echo "Unbekanntes Archivformat: $FILE" >&2; exit 1 ;;
+esac

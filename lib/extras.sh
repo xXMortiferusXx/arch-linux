@@ -244,5 +244,12 @@ apply_cgroup = false
 EOF
   arch-chroot "$TARGET" systemctl enable ananicy-cpp.service
 
-  ui_ok "accounts-daemon + ananicy-cpp aktiv"
+  # scx_loader: scx_bpfland im Gaming-Modus (Config in hosts/nex/config)
+  arch-chroot "$TARGET" systemctl enable scx_loader.service
+
+  # MS-Corefonts (nur chaotic)
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm ttf-ms-fonts \
+    || ui_warn "ttf-ms-fonts nicht verfuegbar"
+
+  ui_ok "accounts-daemon, ananicy-cpp, scx_loader aktiv"
 }

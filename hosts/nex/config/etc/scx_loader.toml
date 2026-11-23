@@ -1,0 +1,3 @@
+# aus hosts/nex/configuration.nix (services.scx-loader)
+default_sched = "scx_bpfland"
+default_mode = "Gaming"

@@ -1,0 +1,10 @@
+{
+  "policies": {
+    "Preferences": {
+      "sidebar.revamp": true,
+      "sidebar.verticalTabs": true,
+      "sidebar.visibility": "expand-on-hover",
+      "sidebar.main.tools": "aichat,syncedtabs,history,bookmarks,opentabs"
+    }
+  }
+}
