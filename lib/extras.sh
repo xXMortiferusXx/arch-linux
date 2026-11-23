@@ -334,6 +334,7 @@ extras_apps() {
   ui_step "Zusatz-Apps (chaotic)"
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
     bibata-cursor-theme tela-icon-theme naps2 vinegar python-pynput \
+    vkbasalt lib32-vkbasalt \
     || ui_warn "einzelne chaotic-Apps nicht verfuegbar"
 
   # xone: Xbox-Controller (USB-Dongle + BT) - DKMS baut im Chroot
