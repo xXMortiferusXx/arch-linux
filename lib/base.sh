@@ -51,7 +51,9 @@ gen_fstab() {
   # Spiele-Platte mit nofail: fehlt/defekt -> Boot laeuft weiter (wie /home
   # auf einer externen Platte). Fehler beim Mounten fallen im Journal auf.
   if [ -n "${GAMING:-}" ]; then
-    awk 'BEGIN{OFS="\t"} $2=="/gaming" && $4 !~ /nofail/ { $4 = $4 ",nofail" } {print}' \
+    # Steam-taugliche Optionen: noatime (weniger Schreiblast), nofail (Boot
+    # ohne Platte), kurzer Device-Timeout statt 90 s Wartezeit.
+    awk 'BEGIN{OFS="\t"} $2=="/gaming" { $4 = "defaults,noatime,nofail,x-systemd.device-timeout=5" } {print}' \
       "$TARGET/etc/fstab" > "$TARGET/etc/fstab.tmp"
     mv "$TARGET/etc/fstab.tmp" "$TARGET/etc/fstab"
   fi
@@ -88,11 +90,23 @@ configure_base() {
   # 750 statt 775: sshd (StrictModes) verweigert gruppen-schreibbare Homes.
   chmod 750 "$TARGET/home/$username"
 
+  local uid gid
+  uid="$(arch-chroot "$TARGET" id -u "$username")"
+  gid="$(arch-chroot "$TARGET" id -g "$username")"
+
+  # Spiele-Platte: Mountpunkt dem User geben, sonst kann Steam keine
+  # Bibliothek anlegen ("new library folder ... permission denied").
+  if [ -n "${GAMING:-}" ] && mountpoint -q "$TARGET/gaming"; then
+    chown "$uid:$gid" "$TARGET/gaming"
+    if arch-chroot "$TARGET" runuser -u "$username" -- test -w /gaming; then
+      ui_ok "Spiele-Platte fuer $username schreibbar"
+    else
+      ui_warn "/gaming ist fuer $username nicht schreibbar"
+    fi
+  fi
+
   # SSH-Keys (passwortloser Zugang, z. B. aus dem Test-Host)
   if [ -f "$profile/authorized_keys" ]; then
-    local uid gid
-    uid="$(arch-chroot "$TARGET" id -u "$username")"
-    gid="$(arch-chroot "$TARGET" id -g "$username")"
     install -d -m 700 -o "$uid" -g "$gid" "$TARGET/home/$username/.ssh"
     install -m 600 -o "$uid" -g "$gid" "$profile/authorized_keys" \
       "$TARGET/home/$username/.ssh/authorized_keys"
