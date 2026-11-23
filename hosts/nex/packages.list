@@ -4,7 +4,7 @@
 
 # --- System ---------------------------------------------------------------
 sudo
-iptables-nft
+iptables
 archlinux-keyring
 gnupg
 networkmanager
@@ -19,6 +19,27 @@ snapper
 zram-generator
 polkit
 accountsservice
+power-profiles-daemon
+upower
+udisks2
+irqbalance
+fwupd
+bluez
+bluez-utils
+iwd
+modemmanager
+avahi
+chrony
+colord
+cups
+cups-pk-helper
+sane
+sane-airscan
+nvidia-settings
+tumbler
+gnome-keyring
+speech-dispatcher
+xorg-xwayland
 
 # --- Werkzeuge ------------------------------------------------------------
 git
@@ -31,6 +52,33 @@ nano
 vim
 htop
 fastfetch
+brightnessctl
+smartmontools
+bind
+libnotify
+pciutils
+usbutils
+mesa-demos
+ntfs-3g
+cpupower
+cifs-utils
+samba
+gvfs
+iw
+speedtest-cli
+lvm2
+mtools
+fuse2
+fuse3
+man-db
+plocate
+texinfo
+dconf
+xdg-utils
+xdg-terminal-exec
+shared-mime-info
+hicolor-icon-theme
+sound-theme-freedesktop
 
 # --- Grafik ---------------------------------------------------------------
 mesa

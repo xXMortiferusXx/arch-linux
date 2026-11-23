@@ -63,6 +63,9 @@ Abnahme Phase 0: VM bootet nach der Installation und SSH ist erreichbar.
 
 ## Offene Punkte
 
+- Firewall (NixOS hatte `networking.firewall`; auf Arch noch nicht portiert)
+- `orca-slicer-bin` (AUR) – nach dem ersten Login per `paru -S` nachziehen
+
 - Hardware-Test auf nex (NVIDIA/PRIME, Umbriel/Noctalia, Greeter-Sync)
 - Greeter-Theme-Sync: greift erst nach dem ersten Login (in der VM nicht testbar)
 - Drift-Check: `pacman -Qqe` gegen `hosts/<host>/packages.list`

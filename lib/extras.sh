@@ -15,6 +15,8 @@ install_extras() {
   extras_gaming "$profile"
   extras_sunshine
   extras_system
+  extras_apps
+  extras_services
 
   if [ -x "$profile/post.sh" ]; then
     ui_step "Host-Post-Skript"
@@ -296,6 +298,52 @@ extras_sunshine() {
     printf 'uinput\nuhid\n' >> "$TARGET/etc/modules-load.d/nex.conf"
   fi
   ui_ok "Sunshine installiert (User-Service, nicht autostart)"
+}
+
+# Desktop-/Zusatz-Apps, die es nur in chaotic gibt.
+extras_apps() {
+  ui_step "Zusatz-Apps (chaotic)"
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm \
+    bibata-cursor-theme tela-icon-theme naps2 vinegar python-pynput \
+    || ui_warn "einzelne chaotic-Apps nicht verfuegbar"
+  ui_ok "Cursor/Icon-Theme, NAPS2, Vinegar, python-pynput"
+}
+
+# Dienste wie im NixOS-Setup (Bluetooth, Drucken, DNS-Cache, Zeit, Firmware).
+extras_services() {
+  ui_step "Dienste"
+
+  local unit
+  for unit in bluetooth.service power-profiles-daemon.service upower.service \
+              udisks2.service irqbalance.service colord.service smartd.service \
+              cups.socket avahi-daemon.service avahi-daemon.socket \
+              fwupd.service fwupd-refresh.timer; do
+    arch-chroot "$TARGET" systemctl enable "$unit" >/dev/null 2>&1 \
+      || ui_warn "$unit nicht aktivierbar"
+  done
+
+  # WLAN ueber iwd (Backend in /etc/NetworkManager/conf.d/10-wifi.conf)
+  arch-chroot "$TARGET" systemctl enable iwd.service >/dev/null 2>&1 \
+    || ui_warn "iwd.service nicht aktivierbar"
+
+  # DNS-Cache (systemd-resolved), resolv.conf zeigt auf den Stub
+  if arch-chroot "$TARGET" systemctl enable systemd-resolved.service >/dev/null 2>&1; then
+    ln -sf /run/systemd/resolve/stub-resolv.conf "$TARGET/etc/resolv.conf"
+  else
+    ui_warn "systemd-resolved nicht aktivierbar"
+  fi
+
+  # Zeit: chrony statt systemd-timesyncd
+  arch-chroot "$TARGET" systemctl disable systemd-timesyncd.service >/dev/null 2>&1 || true
+  arch-chroot "$TARGET" systemctl enable chrony.service >/dev/null 2>&1 \
+    || ui_warn "chrony.service nicht aktivierbar"
+
+  # Bluetooth nicht automatisch einschalten (wie powerOnBoot = false)
+  if [ -f "$TARGET/etc/bluetooth/main.conf" ]; then
+    sed -i 's/^#\?AutoEnable=.*/AutoEnable=false/' "$TARGET/etc/bluetooth/main.conf"
+  fi
+
+  ui_ok "Bluetooth, Printing, DNS-Cache, chrony, fwupd, irqbalance aktiv"
 }
 
 # System-Tuning: accounts-daemon (Greeter-Userliste), ananicy-cpp.
