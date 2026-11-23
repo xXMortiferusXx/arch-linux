@@ -1,2 +1,0 @@
-# aus modules/hardware/laptop-common.nix (services.smartd, autodetect)
-smartd_opts="-A"

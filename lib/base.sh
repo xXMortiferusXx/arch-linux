@@ -12,9 +12,14 @@ pacstrap_base() {
   # Live-System: gilt fuer pacstrap (schnellerer Download)
   set_parallel_downloads /etc/pacman.conf
 
-  # base + linux-firmware immer, dazu die Host-Pakete (Kommentare/Leerzeilen ignorieren).
-  local pkgs=()
-  mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$list" | grep -v '^$')
+  # base + linux-firmware immer, dazu shared/packages.list und die
+  # Host-Pakete (Kommentare/Leerzeilen ignorieren).
+  local pkgs=() shared_list="${REPO_DIR:-.}/shared/packages.list"
+  if [ -f "$shared_list" ]; then
+    mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$shared_list" "$list" | grep -v '^$' | awk '!seen[$0]++')
+  else
+    mapfile -t pkgs < <(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$list" | grep -v '^$')
+  fi
 
   pacstrap -K "$TARGET" base linux linux-firmware "${pkgs[@]}"
 
@@ -138,19 +143,25 @@ configure_base() {
     arch-chroot "$TARGET" systemctl enable sshd
   fi
 
-  # Host-Configs (sysctl, udev, polkit, greetd ...) 1:1 uebernehmen.
+  # Configs: erst shared/config (gilt fuer alle), dann Host-Overrides.
+  if [ -d "${REPO_DIR:-.}/shared/config" ]; then
+    cp -a "${REPO_DIR:-.}/shared/config/." "$TARGET/"
+  fi
   if [ -d "$profile/config" ]; then
     cp -a "$profile/config/." "$TARGET/"
-    ui_ok "Host-Configs kopiert"
+    ui_ok "Configs kopiert (shared + Host)"
   fi
 
-  # Home-Dotfiles des Hosts (Umbriel, Noctalia, GTK/Qt, nvim ...)
+  # Home-Dotfiles: erst shared/home (Shell, nvim, icons ...), dann Host.
+  if [ -d "${REPO_DIR:-.}/shared/home" ]; then
+    cp -a "${REPO_DIR:-.}/shared/home/." "$TARGET/home/$username/"
+  fi
   if [ -d "$profile/home" ]; then
     cp -a "$profile/home/." "$TARGET/home/$username/"
     arch-chroot "$TARGET" chown -R "$username:$username" "/home/$username"
     # cp -a uebernimmt auch den Modus des Quellverzeichnisses -> zuruecksetzen
     chmod 750 "$TARGET/home/$username"
-    ui_ok "Home-Configs kopiert"
+    ui_ok "Home-Configs kopiert (shared + Host)"
   fi
 
   ui_ok "Grundkonfiguration ($host, $tz, $keymap)"
