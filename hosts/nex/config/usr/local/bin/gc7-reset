@@ -1,0 +1,50 @@
+#!/bin/sh
+# aus modules/hardware/audio-gc7.nix
+# Software-"Replug" fuer ein hart gelocktes Sound Blaster GC7 (041e:3271):
+# toggelt den USB-Port (bzw. authorized), damit das Geraet ohne Abstecken
+# zurueckkommt. --if-missing: nur handeln, wenn das GC7 fehlt (Boot-Service).
+set -u
+if_missing=0
+[ "${1:-}" = "--if-missing" ] && if_missing=1
+
+found=""
+for d in /sys/bus/usb/devices/*/idVendor; do
+  [ "$(cat "$d" 2>/dev/null)" = "041e" ] || continue
+  [ "$(cat "${d%idVendor}idProduct" 2>/dev/null)" = "3271" ] || continue
+  found="${d%idVendor}"
+done
+
+if [ -n "$found" ]; then
+  [ "$if_missing" = 1 ] && exit 0
+  echo "gc7-reset: GC7 bei $found -> authorized 0/1"
+  echo 0 > "${found}authorized" 2>/dev/null || true
+  sleep 1
+  echo 1 > "${found}authorized" 2>/dev/null || true
+  sleep 2
+else
+  # Nicht enumeriert -> leere Root-Ports + Hubs toggeln, damit auch ein GC7
+  # HINTER einem Hub (nicht am Root-Port) neu enumeriert.
+  for port in /sys/bus/usb/devices/usb3/*-0:1.0/usb3-port*; do
+    [ -e "$port/disable" ] || continue
+    n="${port##*-port}"
+    [ -e "/sys/bus/usb/devices/3-$n" ] && continue
+    echo "gc7-reset: GC7 fehlt -> Port $port toggeln"
+    echo 1 > "$port/disable" 2>/dev/null || true
+    sleep 1
+    echo 0 > "$port/disable" 2>/dev/null || true
+  done
+  for hub in /sys/bus/usb/devices/3-*; do
+    [ -e "$hub/authorized" ] || continue
+    [ "$(cat "$hub/bDeviceClass" 2>/dev/null)" = "09" ] || continue
+    echo "gc7-reset: Hub $hub zuruecksetzen"
+    echo 0 > "$hub/authorized" 2>/dev/null || true
+    sleep 1
+    echo 1 > "$hub/authorized" 2>/dev/null || true
+  done
+  sleep 2
+fi
+
+[ "$if_missing" = 1 ] && exit 0
+uid="$(id -u mortiferus 2>/dev/null || echo 1000)"
+runuser -u mortiferus -- env XDG_RUNTIME_DIR="/run/user/$uid" \
+  systemctl --user restart wireplumber >/dev/null 2>&1 || true

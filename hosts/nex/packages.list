@@ -47,6 +47,9 @@ pipewire-pulse
 wireplumber
 pipewire-alsa
 pipewire-jack
+rtkit
+alsa-utils
+pavucontrol
 firefox
 thunar
 unzip
@@ -75,6 +78,7 @@ steam
 lutris
 gamescope
 mangohud
+lib32-libpulse
 lib32-mangohud
 gamemode
 lib32-gamemode

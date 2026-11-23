@@ -1,0 +1,3 @@
+# aus modules/hardware/audio-gc7.nix
+# Autosuspend aus: das GC7 haengt sonst nach S3-Resume (UAC-Clock tot).
+SUBSYSTEM=="usb", ATTR{idVendor}=="041e", ATTR{idProduct}=="3271", ATTR{power/control}="on"
