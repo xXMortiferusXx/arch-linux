@@ -4,6 +4,7 @@
 
 # --- System ---------------------------------------------------------------
 sudo
+iptables-nft
 archlinux-keyring
 gnupg
 networkmanager
@@ -11,6 +12,7 @@ openssh
 btrfs-progs
 grub
 efibootmgr
+mkinitcpio
 grub-btrfs
 inotify-tools
 snapper
@@ -41,7 +43,6 @@ nvidia-prime
 libva-nvidia-driver
 
 # --- Desktop --------------------------------------------------------------
-greetd
 pipewire
 pipewire-pulse
 wireplumber
@@ -76,9 +77,12 @@ starship
 # --- Gaming ---------------------------------------------------------------
 steam
 lutris
+xdg-desktop-portal-gtk
 gamescope
 mangohud
 lib32-libpulse
+lib32-nvidia-utils
+lib32-vulkan-radeon
 lib32-mangohud
 gamemode
 lib32-gamemode

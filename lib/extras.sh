@@ -220,8 +220,11 @@ EOF
 extras_desktop() {
   ui_step "Desktop (chaotic-aur, Umbriel/Noctalia)"
 
+  # greetd kommt erst hier: sein Provider (greetd-greeter) liefert
+  # noctalia-greeter-git aus chaotic - im pacstrap-Schritt gaebe es sonst
+  # eine pacman-Rueckfrage nach einem fremden Greeter.
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
-    umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git \
+    greetd umbriel-git noctalia-git noctalia-greeter-git xdg-desktop-portal-umbriel-git \
     || die "Desktop-Pakete (chaotic) nicht installierbar"
 
   # Greeter-User + greetd (User explizit anlegen, Fehler nicht verschlucken)
