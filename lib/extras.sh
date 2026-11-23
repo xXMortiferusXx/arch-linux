@@ -17,6 +17,7 @@ install_extras() {
   extras_system
   extras_apps
   extras_services
+  extras_keyring
 
   if [ -x "$profile/post.sh" ]; then
     ui_step "Host-Post-Skript"
@@ -372,6 +373,24 @@ extras_services() {
   fi
 
   ui_ok "Bluetooth, Printing, DNS-Cache, chrony, fwupd, irqbalance aktiv"
+}
+
+# gnome-keyring wie auf NixOS: PAM entriegelt den Schluesselbund beim Login,
+# Portal-Zuordnung (Secret -> gnome-keyring) liegt in hosts/<host>/config.
+extras_keyring() {
+  ui_step "Schluesselbund (gnome-keyring)"
+  local pam f
+  for pam in login greetd; do
+    f="$TARGET/etc/pam.d/$pam"
+    [ -f "$f" ] || continue
+    if grep -q 'pam_gnome_keyring.so' "$f"; then
+      continue
+    fi
+    # auth-Zeile vor dem include-Block, session-Zeile ans Ende
+    sed -i '1a auth       optional     pam_gnome_keyring.so' "$f"
+    printf 'session    optional     pam_gnome_keyring.so auto_start\n' >> "$f"
+  done
+  ui_ok "PAM: Keyring entriegelt automatisch beim Login"
 }
 
 # System-Tuning: accounts-daemon (Greeter-Userliste), ananicy-cpp.

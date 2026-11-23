@@ -39,6 +39,8 @@ sane-airscan
 nvidia-settings
 tumbler
 gnome-keyring
+libfido2
+libsecret
 speech-dispatcher
 xorg-xwayland
 
