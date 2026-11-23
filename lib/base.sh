@@ -86,15 +86,15 @@ configure_base() {
   printf '%s\n' "$host" > "$TARGET/etc/hostname"
   printf '127.0.0.1 localhost\n::1 localhost\n127.0.1.1 %s.localdomain %s\n' "$host" "$host" > "$TARGET/etc/hosts"
 
-  # Zusatzgruppen: audio/video fuer PipeWire+DRM, networkmanager fuer nmcli.
-  # Achtung: networkmanager legt systemd-sysusers erst beim ersten Boot an,
-  # im Chroot existiert die Gruppe noch nicht -> vorher erzeugen.
+  # Zusatzgruppen: audio/video fuer PipeWire+DRM. Die Gruppe "networkmanager"
+  # ist nur fuer nmcli als User relevant (nmtui laeuft ueber Polkit/root).
+  # Achtung: sysusers-Gruppen existieren im Chroot noch nicht -> vorher anlegen.
   local g
-  for g in audio video networkmanager; do
+  for g in audio video; do
     arch-chroot "$TARGET" getent group "$g" >/dev/null 2>&1 \
       || arch-chroot "$TARGET" groupadd -r "$g"
   done
-  local groups="wheel,audio,video,networkmanager"
+  local groups="wheel,audio,video"
   if [ "${I2C:-0}" = 1 ]; then
     arch-chroot "$TARGET" getent group i2c >/dev/null 2>&1 \
       || arch-chroot "$TARGET" groupadd -r i2c
