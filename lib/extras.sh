@@ -40,28 +40,51 @@ extras_snap_pac() {
 # snapper nur fuer @ (System). /home, /gaming und /var/* sind eigene
 # Subvolumes und damit automatisch ausgenommen.
 #
-# Zwei Punkte, die snapper auf Arch braucht:
-#   1) --no-dbus: create-config ohne snapperd (chroot hat kein DBus)
-#   2) /etc/conf.d/snapper mit SNAPPER_CONFIGS: ohne Registrierung findet die
-#      CLI keine Config ("Konfiguration Root ist nicht vorhanden") und die
-#      systemd-Timer laufen leer.
+# Zwei Eigenheiten von snapper auf Arch:
+#   1) create-config legt .snapshots selbst an -> scheitert, weil unser
+#      @snapshots-Subvolume bereits unter /.snapshots gemountet ist. Also
+#      create-config versuchen (Fehler ignorieren) und die Config schreiben.
+#   2) /etc/conf.d/snapper (SNAPPER_CONFIGS) ist Pflicht: ohne Registrierung
+#      findet die CLI keine Config ("Konfiguration Root ist nicht vorhanden")
+#      und die systemd-Timer laufen leer.
 extras_snapshots() {
   ui_step "Snapshots (snapper)"
 
   arch-chroot "$TARGET" snapper --no-dbus create-config / </dev/null >/dev/null 2>&1 || true
 
-  local cfg="$TARGET/etc/snapper/configs/root"
-  [ -f "$cfg" ] || die "snapper: create-config hat keine Config erzeugt"
-
-  sed -i \
-    -e 's/^TIMELINE_CREATE=.*/TIMELINE_CREATE="no"/' \
-    -e 's/^NUMBER_LIMIT=.*/NUMBER_LIMIT="10"/' \
-    -e 's/^NUMBER_LIMIT_IMPORTANT=.*/NUMBER_LIMIT_IMPORTANT="5"/' \
-    -e 's/^ALLOW_GROUPS=.*/ALLOW_GROUPS="wheel"/' \
-    "$cfg"
+  install -d -m 755 "$TARGET/etc/snapper/configs"
+  cat > "$TARGET/etc/snapper/configs/root" <<'CFG'
+SUBVOLUME="/"
+FSTYPE="btrfs"
+QGROUP=""
+SPACE_LIMIT="0.5"
+FREE_LIMIT="0.2"
+ALLOW_USERS=""
+ALLOW_GROUPS="wheel"
+SYNC_ACL="no"
+BACKGROUND_COMPARISON="yes"
+NUMBER_CLEANUP="yes"
+NUMBER_MIN_AGE="1800"
+NUMBER_LIMIT="10"
+NUMBER_LIMIT_IMPORTANT="5"
+TIMELINE_CREATE="no"
+TIMELINE_CLEANUP="yes"
+TIMELINE_MIN_AGE="3600"
+TIMELINE_LIMIT_HOURLY="10"
+TIMELINE_LIMIT_DAILY="10"
+TIMELINE_LIMIT_WEEKLY="0"
+TIMELINE_LIMIT_MONTHLY="0"
+TIMELINE_LIMIT_QUARTERLY="0"
+TIMELINE_LIMIT_YEARLY="0"
+EMPTY_PRE_POST_CLEANUP="yes"
+EMPTY_PRE_POST_MIN_AGE="3600"
+CFG
 
   install -d -m 755 "$TARGET/etc/conf.d"
-  printf 'SNAPPER_CONFIGS="root"\n' > "$TARGET/etc/conf.d/snapper"
+  cat > "$TARGET/etc/conf.d/snapper" <<'CONF'
+# Registrierung der snapper-Configs (von snapper-CLI und -Timern gelesen)
+SNAPPER_CONFIGS="root"
+CONF
 
   arch-chroot "$TARGET" systemctl enable snapper-cleanup.timer
   arch-chroot "$TARGET" systemctl disable snapper-timeline.timer >/dev/null 2>&1 || true
