@@ -1,0 +1,4 @@
+# Systemweiter Default fuer Bazaar (NixOS: programs.dconf.profiles.user).
+# Der User kann den Wert im Bazaar-Fenster weiterhin umstellen.
+[io/github/kolunmi/Bazaar]
+auto-update=true

@@ -1,0 +1,9 @@
+[Unit]
+Description=Flathub-GPG-Schluessel aktualisieren
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/usr/bin/flatpak
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/flatpak-key-refresh

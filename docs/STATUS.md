@@ -31,7 +31,7 @@ shared/               gilt für ALLE Hosts
                       polkit, Portale, fastfetch, Firefox, Thunar, nftables-Basis,
                       arch-check/arch-clean, greetd-Drop-in, zink-run, steam)
   home/               Dotfiles (fish, starship, nvim, icons, xsettingsd,
-                      arch-update-Config + User-Timer)
+                      arch-update-Config + Timer + Tray-Service, OBEX)
   grub/               GRUB-Theme "Unholy Angels" (Bild + theme.txt + Generator)
 hosts/<host>/         nur die Unterschiede
   packages.list       Host-Pakete
@@ -85,6 +85,7 @@ Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 | `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 |
 | `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp |
 | `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 |
+| `BEDROCK` | Minecraft Bedrock (`mcpelauncher`, chaotic) | 0 | 1 |
 
 Der User bekommt immer `wheel,audio,video`; sysusers-Gruppen werden vor
 `useradd` angelegt (im Chroot existieren sie sonst nicht).
@@ -156,7 +157,7 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 | `polkit` (Wheel + passwordless Greeter-Sync) | `rules.d/49-wheel`, `50-noctalia-sync` | ✅ |
 | `noctalia-greeter` | greetd + `/var/lib/noctalia-greeter/greeter.toml`, `getty@tty1` maskiert, Greeter-Home korrigiert | ✅ |
 | `printing`/`sane` | cups(+browsed), sane, sane-airscan | ✅ |
-| `flatpak` (benny/lion) | Flatpak + Bazaar + Flathub | ✅ lion |
+| `flatpak` (benny/lion) | Flatpak + Bazaar + Flathub, Auto-Update + Key-Refresh | ✅ lion |
 | `btrfs`-Modul (Scrub/Balance) | Timer | ✅ |
 | `fstrim`, `chrony`, `resolved`, `iwd`, `wireless-regdb`, `avahi`, `fwupd`, `smartd`, `colord`, `irqbalance`, `upower`, `udisks2`, `bluetooth`, `logrotate`, `acpid` | systemd-Units/Pakete | ✅ |
 | `firewall` | `nftables.conf` pro Host | ✅ (IPv4/IPv6, DHCP/mDNS/ICMP, SSH nur LAN bei lion, Sunshine bei nex) |
@@ -249,14 +250,13 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
 
 1. **Hardware-Test auf nex**: NVIDIA/PRIME, Dynamic Boost, GC7 (ChatMix/EQ),
    Legion-Akku, Touchpad, Greeter-Sync (greift erst nach dem ersten Login).
-2. **Hardware-Test lion-pc** (AMD/RADV, DDC-CI, scx_lavd).
+2. **Hardware-Test lion-pc** (AMD/RADV, DDC-CI, scx_lavd, Flatpak/Bazaar,
+   Bazaar-Auto-Update, Flathub-Key-Refresh).
 3. **benny**: Entscheidung offen; Profil noch nicht angelegt (s. o.).
-4. **Bazaar-Auto-Update**: dconf-Default (`auto-update=true`) + User-Service
-   sind noch nicht gesetzt (Bazaar läuft, aktualisiert aber nicht automatisch).
-5. **Nix-Skripte**: `audio-rate`, `mic-check` (nicht nötig, Werte stehen fest),
+4. **Nix-Skripte**: `audio-rate`, `mic-check` (nicht nötig, Werte stehen fest),
    `nvidia-track`, `boosteroid-track` – bei Bedarf neu bauen.
-6. **ISO-Hosting** für Benny (Storage-Box-Unterkonto, read-only, `.sha256`).
-7. `nex` hat regulär **kein sshd** (nur lion/benny) – bei Tests `SSHD=1`
+5. **ISO-Hosting** für Benny (Storage-Box-Unterkonto, read-only, `.sha256`).
+6. `nex` hat regulär **kein sshd** (nur lion/benny) – bei Tests `SSHD=1`
    voranstellen.
 
 ## 12. Nützliche Befehle auf dem Zielsystem

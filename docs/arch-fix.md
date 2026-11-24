@@ -561,7 +561,28 @@ Zwei Punkte aus der NixOS-Vorlage fehlten noch:
   `system-auth`/`system-services` aktiv; das Limit greift ab dem nächsten
   Login.
 
-### 8.8 Geänderte Dateien
+### 8.8 Lion-Härtung (Bazaar/Flatpak/OBEX/mpv/Tray)
+
+Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
+
+- **Bazaar-Auto-Update**: `dconf`-Default `io/github/kolunmi/Bazaar
+  auto-update=true` (Profil `user`, `system-db:local`), `dconf update` im
+  Installer. Das Arch-Paket bringt die User-Unit
+  `io.github.kolunmi.Bazaar.service` bereits mit, aber ohne `[Install]`;
+  deshalb ein Symlink in `graphical-session.target.wants`.
+- **Flathub**: mitgelieferte `flathub.flatpakrepo` (kein DNS/Netz im
+  Chroot nötig) plus `flatpak-key-refresh.timer` für Schlüsselrotation.
+- **OBEX**: `bluez-obex` + Drop-in (`--auto-accept`,
+  `~/Downloads/Bluetooth`), gestartet über `graphical-session.target`.
+- **`mpv`**: fehlte in der gemeinsamen Paketliste (NixOS-Lion hatte es).
+- **Bedrock**: NixOS-Lion nutzte `BedrockOnLinux` (Wine-Flake); dafür gibt
+  es kein Arch-Paket. `BEDROCK=1` (nur lion) installiert stattdessen
+  `mcpelauncher-linux-git` + `mcpelauncher-ui-git` aus chaotic.
+- **arch-update-Tray**: eigener User-Service, der auf Noctalias
+  SNI-Watcher wartet; `ShowTrayWhenRelevant` entfernt, damit das Icon
+  dauerhaft sichtbar ist.
+
+### 8.9 Geänderte Dateien
 
 | Datei | Änderung |
 |---|---|
@@ -575,4 +596,17 @@ Zwei Punkte aus der NixOS-Vorlage fehlten noch:
 | `lib/extras.sh` (`extras_desktop`) | `usermod -d /var/lib/noctalia-greeter` für `greeter` |
 | `lib/extras.sh` (`extras_system`) | `bpftune-git` + `bpftune.service` |
 | `shared/config/etc/security/limits.d/99-audio.conf` | neu: `@audio - rtprio 99` |
+| `shared/home/.config/systemd/user/arch-update-tray.service` | neu: Tray-Service (wartet auf SNI-Host) |
+| `shared/home/.config/arch-update/arch-update.conf` | Tray immer sichtbar |
+| `shared/config/etc/dconf/profile/user`, `.../db/local.d/00-bazaar` | Bazaar `auto-update=true` |
+| `shared/config/usr/share/flatpak/flathub.flatpakrepo` | Flathub-Repo offline verfügbar |
+| `shared/config/usr/local/bin/flatpak-key-refresh` | GPG-Key-Refresh |
+| `shared/config/etc/systemd/system/flatpak-key-refresh.{service,timer}` | täglicher Key-Refresh |
+| `lib/extras.sh` (`extras_flatpak`) | lokale `.flatpakrepo`, `dconf update`, Key-Timer |
+| `lib/extras.sh` (`extras_gaming`) | `mcpelauncher` für `BEDROCK=1` |
+| `hosts/lion-pc/settings.env` | `BEDROCK=1` |
+| `hosts/lion-pc/home/.../settings.toml.baseline` | `nix-monitor` und Discord-Nix-Pfad entfernt |
+| `hosts/lion-pc/home/.../graphical-session.target.wants/io.github.kolunmi.Bazaar.service` | Bazaar-Daemon beim Login |
+| `shared/home/.config/systemd/user/obex.service.d/10-auto-accept.conf` | OBEX Auto-Accept |
+| `shared/packages.list` | `mpv`, `bluez-obex` |
 | `hosts/nex/home/.config/umbriel/cfg/display.toml` | eDP-Zuordnung in den Kommentaren korrigiert |

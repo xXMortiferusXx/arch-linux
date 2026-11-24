@@ -1,0 +1,17 @@
+[Unit]
+Description=Arch-Update Systray-Applet
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Noctalia registriert den SNI-Tray-Host erst nach dem Session-Start. Ohne
+# Warten erscheint das Icon nicht (der Tray registriert sich nur einmal).
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 120); do /usr/bin/busctl --user get-property org.kde.StatusNotifierWatcher /StatusNotifierWatcher org.kde.StatusNotifierWatcher IsStatusNotifierHostRegistered 2>/dev/null | /usr/bin/grep -q "b true" && exit 0; /usr/bin/sleep 0.5; done; exit 0'
+# Das Skript forkt den Tray per setsid und beendet sich; RemainAfterExit haelt
+# die Unit (und den Cgroup) am Leben.
+ExecStart=/usr/bin/arch-update --tray
+
+[Install]
+WantedBy=graphical-session.target

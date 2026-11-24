@@ -330,7 +330,16 @@ extras_gaming() {
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
     heroic-games-launcher-bin protonplus lsfg-vk-git \
     || die "Gaming-Pakete (chaotic) nicht installierbar"
-  ui_ok "Heroic, ProtonPlus, lsfg-vk installiert"
+
+  # NixOS-Lion nutzte BedrockOnLinux (Wine-Flake). Dafuer gibt es kein
+  # Arch-Paket; mcpelauncher ist der native Ersatz fuer Minecraft Bedrock.
+  if [ "${BEDROCK:-0}" = 1 ]; then
+    arch-chroot "$TARGET" pacman -S --needed --noconfirm \
+      mcpelauncher-linux-git mcpelauncher-ui-git \
+      || ui_warn "mcpelauncher (Bedrock) nicht verfuegbar"
+  fi
+
+  ui_ok "Heroic, ProtonPlus, lsfg-vk (ggf. Bedrock/mcpelauncher) installiert"
 }
 
 # Sunshine (Game-Streaming-Host, nex-only) aus dem offiziellen LizardByte-Repo.
@@ -444,14 +453,30 @@ extras_flatpak() {
     cp /etc/resolv.conf "$TARGET/etc/resolv.conf"
     restore=1
   fi
-  arch-chroot "$TARGET" flatpak remote-add --if-not-exists --system flathub \
-    https://dl.flathub.org/repo/flathub.flatpakrepo \
-    || ui_warn "Flathub-Remote nicht registriert (spaeter manuell)"
+  # Mitgelieferte .flatpakrepo-Datei: funktioniert auch ohne DNS/Netz im
+  # Chroot. Der Key-Refresh-Timer holt spaeter den aktuellen Schluessel.
+  if [ -f "$TARGET/usr/share/flatpak/flathub.flatpakrepo" ]; then
+    arch-chroot "$TARGET" flatpak remote-add --if-not-exists --system flathub \
+      /usr/share/flatpak/flathub.flatpakrepo \
+      || ui_warn "Flathub-Remote nicht registriert (spaeter manuell)"
+  else
+    arch-chroot "$TARGET" flatpak remote-add --if-not-exists --system flathub \
+      https://dl.flathub.org/repo/flathub.flatpakrepo \
+      || ui_warn "Flathub-Remote nicht registriert (spaeter manuell)"
+  fi
   if [ "$restore" = 1 ]; then
     rm -f "$TARGET/etc/resolv.conf"
     ln -sf /run/systemd/resolve/stub-resolv.conf "$TARGET/etc/resolv.conf"
   fi
-  ui_ok "Flatpak + Flathub, Bazaar"
+
+  # Bazaar-Default (auto-update=true) aus etc/dconf/db/local.d kompilieren.
+  arch-chroot "$TARGET" dconf update >/dev/null 2>&1 \
+    || ui_warn "dconf update fehlgeschlagen (Bazaar-Auto-Update evtl. inaktiv)"
+
+  arch-chroot "$TARGET" systemctl enable flatpak-key-refresh.timer >/dev/null 2>&1 \
+    || ui_warn "flatpak-key-refresh.timer nicht aktivierbar"
+
+  ui_ok "Flatpak + Flathub, Bazaar (Auto-Update), Key-Refresh"
 }
 
 # gnome-keyring wie auf NixOS: PAM entriegelt den Schluesselbund beim Login,

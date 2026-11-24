@@ -26,6 +26,7 @@ irqbalance
 fwupd
 bluez
 bluez-utils
+bluez-obex
 iwd
 wireless-regdb
 modemmanager
@@ -101,6 +102,7 @@ thunderbird
 zathura
 loupe
 gimp
+mpv
 qalculate-gtk
 cartridges
 goverlay

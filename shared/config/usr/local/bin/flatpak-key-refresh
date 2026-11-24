@@ -1,0 +1,21 @@
+#!/bin/sh
+# Flathub-GPG-Schluessel aktualisieren (Pendant zu flatpak-key-refresh in
+# modules/services/flatpak.nix). Ohne Netz passiert nichts (exit 0).
+set -u
+
+tmp=$(mktemp -d) || exit 0
+trap 'rm -rf "$tmp"' EXIT
+
+curl -fsL --max-time 30 https://dl.flathub.org/repo/flathub.flatpakrepo \
+  -o "$tmp/repo.flatpakrepo" || exit 0
+
+grep -m1 '^GPGKey=' "$tmp/repo.flatpakrepo" \
+  | cut -d= -f2- \
+  | base64 -d > "$tmp/flathub.gpg" || exit 0
+
+[ -s "$tmp/flathub.gpg" ] || exit 0
+
+flatpak remote-modify --system --gpg-import="$tmp/flathub.gpg" flathub \
+  >/dev/null 2>&1 || true
+
+exit 0
