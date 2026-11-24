@@ -340,7 +340,7 @@ extras_apps() {
   ui_step "Zusatz-Apps (chaotic)"
   arch-chroot "$TARGET" pacman -S --needed --noconfirm \
     bibata-cursor-theme tela-icon-theme vinegar python-pynput \
-    vkbasalt lib32-vkbasalt \
+    vkbasalt lib32-vkbasalt arch-update \
     || ui_warn "einzelne chaotic-Apps nicht verfuegbar"
 
   if [ "${SCANNER:-1}" = 1 ]; then

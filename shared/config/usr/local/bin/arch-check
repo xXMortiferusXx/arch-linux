@@ -39,6 +39,23 @@ else
   ui_info "paru nicht installiert"
 fi
 
+ui_step "Verwaiste Pakete"
+orphans=$(pacman -Qtdq 2>/dev/null || true)
+n=$(printf '%s' "$orphans" | grep -c . || true)
+if [ "$n" -eq 0 ]; then
+  ui_ok "keine"
+else
+  ui_warn "$n Pakete (arch-clean entfernt sie)"
+  printf '%s\n' "$orphans" | sed 's/^/    /'
+fi
+
+ui_step "Paket-Cache"
+if command -v paccache >/dev/null 2>&1; then
+  ui_info "$(paccache -d 2>/dev/null | sed -n 's/^==> no candidate packages found.*/keine alten Pakete/p' | tail -1)"
+else
+  ui_info "paccache fehlt (pacman-contrib)"
+fi
+
 ui_step "Reboot-Status"
 running=$(uname -r)
 newest=$(ls /usr/lib/modules 2>/dev/null | sort -V | tail -1)

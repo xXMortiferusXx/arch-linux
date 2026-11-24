@@ -1,0 +1,42 @@
+#!/bin/sh
+# Pendant zu nix-clean: verwaiste Pakete, Paket-Cache, AUR-Builds, Journal.
+set -u
+if [ -t 1 ]; then
+  ACC=$(printf '\033[38;5;39m'); OKC=$(printf '\033[38;5;42m')
+  WRN=$(printf '\033[38;5;214m'); DIM=$(printf '\033[38;5;245m')
+  BLD=$(printf '\033[1m'); RST=$(printf '\033[0m')
+else
+  ACC=""; OKC=""; WRN=""; DIM=""; BLD=""; RST=""
+fi
+ui_step() { printf '\n%s▸%s %s%s%s\n' "$ACC" "$RST" "$BLD" "$1" "$RST"; }
+ui_ok()   { printf '  %s✔%s %s\n' "$OKC" "$RST" "$1"; }
+ui_info() { printf '  %s•%s %s\n' "$DIM" "$RST" "$1"; }
+
+ui_step "Verwaiste Pakete"
+orphans=$(pacman -Qtdq 2>/dev/null || true)
+if [ -z "$orphans" ]; then
+  ui_ok "keine"
+else
+  printf '%s\n' "$orphans" | sed 's/^/    /'
+  printf '  Entfernen? [j/N] '
+  read -r a
+  case "$a" in j|J|y|Y) printf '%s\n' "$orphans" | sudo pacman -Rns - ;; *) ui_info "uebersprungen" ;; esac
+fi
+
+ui_step "Paket-Cache (paccache)"
+if command -v paccache >/dev/null 2>&1; then
+  sudo paccache -rk3 && sudo paccache -ruk0
+else
+  ui_info "paccache fehlt (pacman-contrib)"
+fi
+
+ui_step "AUR-Build-Cache (paru)"
+if command -v paru >/dev/null 2>&1; then
+  paru -Sc --noconfirm 2>/dev/null || ui_info "nichts zu loeschen"
+fi
+
+ui_step "Journal"
+sudo journalctl --vacuum-time=2weeks 2>/dev/null | tail -2
+
+ui_step "Fertig"
+ui_ok "Aufgeraeumt"

@@ -1,6 +1,0 @@
-#!/bin/sh
-# Pendant zu nixos-update: Systemupdate mit kurzer Rueckmeldung.
-set -u
-printf '\n  Arch Update\n  ────────────────────────────\n\n'
-sudo pacman -Syu
-printf '\n  Fertig. Reboot nur bei Kernel/Treiber-Updates noetig.\n'
