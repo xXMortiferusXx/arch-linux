@@ -31,7 +31,8 @@ shared/               gilt für ALLE Hosts
                       polkit, Portale, fastfetch, Firefox, Thunar, nftables-Basis,
                       arch-check/arch-clean, greetd-Drop-in, zink-run, steam)
   home/               Dotfiles (fish, starship, nvim, icons, xsettingsd,
-                      arch-update-Config + Timer + Tray-Service, OBEX)
+                      arch-update-Config + Timer + Tray-Service, OBEX,
+                      MIME-Defaults)
   grub/               GRUB-Theme "Unholy Angels" (Bild + theme.txt + Generator)
 hosts/<host>/         nur die Unterschiede
   packages.list       Host-Pakete

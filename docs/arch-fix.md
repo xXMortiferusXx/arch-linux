@@ -591,7 +591,26 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
   SNI-Watcher wartet; `ShowTrayWhenRelevant` entfernt, damit das Icon
   dauerhaft sichtbar ist.
 
-### 8.9 Geänderte Dateien
+### 8.9 MIME-Defaults aus NixOS übernommen
+
+`modules/home/apps/mimeapps.nix` gilt jetzt auch auf Arch, als
+`shared/home/.config/mimeapps.list` (für nex und lion):
+
+- PDF → `org.pwmt.zathura.desktop`
+- Bilder (PNG/BMP/JPEG/GIF/WebP/TIFF/SVG) → `org.gnome.Loupe.desktop`
+- Video → `mpv.desktop`
+- Audio → `io.bassi.Amberol.desktop`
+- Text/Code → `nvim.desktop`
+- Browser/HTTP → `firefox.desktop`
+- Mail → `org.mozilla.Thunderbird.desktop` (Arch-ID; NixOS nutzte
+  `thunderbird.desktop`)
+- Ordner → `thunar.desktop`
+
+`amberol` und `mpv` wurden dafür in die gemeinsame Paketliste aufgenommen.
+Live geprüft: `xdg-mime query default` liefert für alle Beispiele die
+richtigen Programme.
+
+### 8.10 Geänderte Dateien
 
 | Datei | Änderung |
 |---|---|
@@ -617,5 +636,6 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 | `hosts/lion-pc/home/.../settings.toml.baseline` | `nix-monitor` und Discord-Nix-Pfad entfernt |
 | `hosts/lion-pc/home/.../graphical-session.target.wants/io.github.kolunmi.Bazaar.service` | Bazaar-Daemon beim Login |
 | `shared/home/.config/systemd/user/obex.service.d/10-auto-accept.conf` | OBEX Auto-Accept |
-| `shared/packages.list` | `mpv`, `bluez-obex` |
+| `shared/packages.list` | `mpv`, `amberol`, `bluez-obex` |
+| `shared/home/.config/mimeapps.list` | NixOS-MIME-Defaults (zathura/Loupe/mpv/Amberol/nvim/Thunderbird) |
 | `hosts/nex/home/.config/umbriel/cfg/display.toml` | eDP-Zuordnung in den Kommentaren korrigiert |
