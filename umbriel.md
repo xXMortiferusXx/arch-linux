@@ -15,8 +15,7 @@ Zweck: Version, Config-Stand und Upstream-Änderungen für den **Arch-Port**
 | Upstream `main` | `a909081a934a` |
 | Upstream `cachix` | `a909081a934a` (identisch mit `main`) |
 | Config-Validierung | `umbriel config validate` → `config: ok` |
-| Border-Effekt | `pulse-bright` (nur fokussiert, blau) |
-| Cursor-Effekt | `glow-subtle` (Radius 80, dezenter blauer Halo) |
+| Shader-Effekte | deaktiviert (Versuch 2026-11-24 verworfen) |
 | NixOS-Pin | `2572005a9fe5505618f783534ca0ca6d0e745090` (15.11., revCount 1581) |
 | Abstand | **91 Commits** hinter Arch/Upstream |
 
@@ -62,16 +61,15 @@ Arch-Unterschiede:
 
 ## Effekte: `appearance` vs. `[effects]`
 
-Nicht verwechseln:
-
 - **`appearance`** (aktiv): `blur`, `shadow`, `corner_radius = 12`,
   `drag_opacity`, `animation` (popin/fade/snappy). Das ist der normale
   „moderne“ Look und läuft bereits.
-- **`[effects]`** (aktiv: `pulse-bright` + `glow-subtle`): separate
-  GLSL-Engine für Border-/Window-/Screen-/Cursor-Effekte. `umbriel effects`
-  zeigt beide als `compiled`; der Border-Effekt gilt nur für das **fokussierte**
-  Fenster (`effects.border_unfocused = false`), der Cursor-Halo folgt dem
-  Pointer.
+- **`[effects]`** (deaktiviert): separate GLSL-Engine. Ein Versuch mit
+  `pulse-bright` (Border) und `glow-subtle` (Cursor) am 2026-11-24 wurde
+  **verworfen**: Mit `max_fps=0` (165-Hz-Panel) ging die AMD-iGPU auf ~65 %;
+  selbst mit `max_fps=30` blieb sie mit beiden Effekten bei ~24 %. Für den
+  kleinen visuellen Nutzen war das zu teuer. Live und im Repo wieder entfernt;
+  `umbriel effects` zeigt keine Presets, `effects.border/cursor` sind leer.
 
 Mitgelieferte Presets (nur nach Include + Selektor aktiv):
 
@@ -83,55 +81,23 @@ Mitgelieferte Presets (nur nach Include + Selektor aktiv):
 | Window | `scanlines` |
 | Animation | `reveal`, `squash`, `workspace_wipe` |
 
-**Aktiv seit 2026-11-24:**
-
-- `pulse-bright` – Kopie des gebündelten `pulse`-Shaders mit
-  `palette = false` (heller Blau-Fallback), `light.intensity = 3.0`,
-  `light.spread = 100`. Der Noctalia-Akzent `#616200` ist sehr dunkel; damit
-  wäre der Puls praktisch unsichtbar.
-- `glow-subtle` – dezenter Cursor-Halo (Radius **80**, Halo 0.22, ruhiges
-  Atmen) mit hellem Blau-Fallback. Das gebündelte `glow` (Radius 96,
-  Halo 0.5) war zu stark; `glow-bright` war nur ein Test und ist nicht im Repo.
-  Beim Text-Cursor wirkt der Halo ruhiger; beim Bibata-Pfeil etwas ungewohnt.
-  Cursor-Theme bleibt vorerst `Bibata-Modern-Ice`; ein anderes Theme kann
-  separat getestet werden.
-
-Dateien:
-
-- `shared/home/.config/umbriel/cfg/effects.toml`
-- `shared/home/.config/umbriel/cfg/effects/pulse-bright/shader.glsl`
-  (Kopie von `/usr/share/umbriel/effects/border/pulse/shader.glsl`, MIT)
-- `shared/home/.config/umbriel/cfg/effects/glow-subtle/shader.glsl`
-  (lokale, abgeschwächte Variante des gebündelten `glow`)
-- In `hosts/nex/home/.config/umbriel/config.toml` und
-  `hosts/lion-pc/home/.config/umbriel/config.toml` ist `cfg/effects.toml`
-  in `[include].files` eingetragen.
-
-Die übrigen Presets bleiben bewusst aus: `vignette` (Screen) deaktiviert
-Direct-Scanout und kann Spiele/Video stören; `scanlines` ist retro; `audio`
-ist ein Spektrum-Gimmick; das gebündelte `glow`/`trail` bleibt aus.
-`border_effect_unfocused = true` würde alle unfokussierten Fenster leuchten
-lassen – bewusst nicht gesetzt.
-
-Rollback: `cfg/effects.toml` aus dem Include nehmen bzw. die Selektoren
-`[effects] border`/`cursor` entfernen; danach `umbriel config validate`.
-Der Cursor-Halo lässt sich live mit `umbriel config set effects.cursor ""`
-abschalten; `umbriel config unset --all` stellt die Dateiwerte wieder her.
+**Fazit:** aus lassen. `border_effect_unfocused` ist nur innerhalb dieser
+Engine relevant und ohne Border-Effekt wirkungslos. Wenn die Effekte später
+noch einmal getestet werden, vorher die iGPU-Last mit
+`/sys/class/drm/card1/device/gpu_busy_percent` messen und `max_fps` klein
+halten.
 
 ## Feature-Entscheidung
 
-Die Config ist gültig; abgesehen von den bewusst gewählten `pulse-bright` und
-`glow-subtle` bleibt sie minimal.
+Die Config ist gültig; `[effects]` bleibt aus.
 
 | Feature | Empfehlung |
 |---|---|
-| `pulse-bright` (Border) | **Aktiv**, nur fokussiert; blaues Fallback-Licht statt dunklem Noctalia-Akzent |
-| `glow-subtle` (Cursor) | **Aktiv**, Radius 80; dezenter blauer Halo, ruhiger Atem |
-| `glow-bright` (Test) | Verworfen; war nur zum Vergleich, nicht im Repo |
+| `[effects]` (pulse/glow) | **Verworfen**: iGPU-Last zu hoch, wieder deaktiviert |
 | `global_shortcuts` | Nichts tun – Portal/Freigabe läuft automatisch; Apps können Shortcuts registrieren |
 | Scratchpad Show/Hide/Pin/Stay-up | Optional; wir nutzen bereits `Mod+Tab` + `scratchpad-window-show-next/previous` |
 | `spawn-floating` | Optional; z. B. für ein Floating-Terminal, aktuell nicht gebunden |
-| `border_effect_unfocused` | Nur mit Border-Effect; bleibt `false` (nur fokussiertes Fenster) |
+| `border_effect_unfocused` | Nur innerhalb der deaktivierten `[effects]`-Engine; aktuell wirkungslos |
 | Config-Diagnostik/unknown-match-Fix | Automatisch, keine Aktion |
 
 Wenn Scratchpads künftig intensiver genutzt werden, sind die neuen
@@ -167,11 +133,10 @@ Anschließend beide Hosts validieren und diese Datei fortschreiben.
 
 ## Historie
 
-- **2026-11-24 (Effekt)**: `pulse-bright` (nex + lion über `shared/home`)
-  mit `palette=false`/Light 3.0/100 aktiviert, weil der Noctalia-Akzent
-  `#616200` zu dunkel war. Dazu `glow-subtle` (Radius 80, Halo 0.22) als
-  dezenter Cursor-Halo; `glow-bright` nur getestet und verworfen.
-  `config: ok`, `umbriel effects`: beide `compiled`.
+- **2026-11-24 (Effekt-Versuch, verworfen)**: `pulse-bright` + `glow-subtle`
+  getestet; der Cursor-Halo trieb die iGPU bei 165 Hz auf ~65 %, mit
+  `max_fps=30` blieben ~24 %. Wegen unverhältnismäßiger Last live und im Repo
+  deaktiviert; `effects` ist wieder leer, iGPU ~7–8 %.
 - **2026-11-24**: Arch `a909081` = Upstream `main`/`cachix`; NixOS-Pin
   `2572005` (91 Commits zurück). `config: ok`; keine Migration. Neue Features:
   Global Shortcuts, Scratchpad-Verbesserungen, `spawn-floating`,
