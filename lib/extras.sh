@@ -307,6 +307,16 @@ EOF
   # den Login-Prompt auf tty1 hoch und die Textkonsole blitzt kurz auf.
   arch-chroot "$TARGET" systemctl disable getty@tty1.service >/dev/null 2>&1 || true
   arch-chroot "$TARGET" systemctl mask getty@tty1.service autovt@tty1.service >/dev/null 2>&1 || true
+
+  # Passwortloser Greeter-Sync (Pendant zu passwordlessSyncUsers in NixOS):
+  # legt die eng gefasste Polkit-Regel fuer genau diesen Benutzer an. Braucht
+  # root und ein vertrauenswuerdiges /usr (Rechte-Normalisierung in base.sh).
+  if arch-chroot "$TARGET" noctalia-greeter passwordless-sync enable "$username"; then
+    ui_ok "Greeter-Sync ohne Passwortabfrage aktiviert"
+  else
+    ui_warn "passwordless-sync nicht aktiviert - nach dem ersten Login: sudo noctalia-greeter passwordless-sync enable $username"
+  fi
+
   ui_ok "Desktop: greetd + Noctalia-Greeter (de, ohne Uhr)"
 }
 
@@ -448,12 +458,28 @@ extras_keyring() {
   for pam in login greetd; do
     f="$TARGET/etc/pam.d/$pam"
     [ -f "$f" ] || continue
-    if grep -q 'pam_gnome_keyring.so' "$f"; then
-      continue
-    fi
-    # auth-Zeile vor dem include-Block, session-Zeile ans Ende
-    sed -i '1a auth       optional     pam_gnome_keyring.so' "$f"
-    printf 'session    optional     pam_gnome_keyring.so auto_start\n' >> "$f"
+
+    # WICHTIG: Die auth-Zeile muss HINTER dem auth-include stehen. Erst dort
+    # hat pam_unix PAM_AUTHTOK gesetzt; davor meldet gkr-pam "no password is
+    # available for user" und der Bund bleibt zu.
+    # Bewusst kein "schon vorhanden"-Guard: eine falsch platzierte Zeile aus
+    # einer alten Installation wird so bei jedem Lauf korrigiert.
+    awk '
+      /^auth[[:space:]]+optional[[:space:]]+pam_gnome_keyring\.so([[:space:]]|$)/ { next }
+      { line[++n] = $0 }
+      END {
+        last = 0
+        for (i = 1; i <= n; i++)
+          if (line[i] ~ /^auth[[:space:]]/) last = i
+        for (i = 1; i <= n; i++) {
+          print line[i]
+          if (i == last) print "auth       optional     pam_gnome_keyring.so"
+        }
+      }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+
+    # session-Zeile genau einmal, ans Ende (startet den Daemon und entriegelt)
+    grep -qE '^session[[:space:]]+optional[[:space:]]+pam_gnome_keyring\.so' "$f" \
+      || printf 'session    optional     pam_gnome_keyring.so auto_start\n' >> "$f"
   done
   ui_ok "PAM: Keyring entriegelt automatisch beim Login"
 }

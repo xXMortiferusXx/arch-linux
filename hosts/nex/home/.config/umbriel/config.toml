@@ -7,9 +7,9 @@
 # Farben kommen von Noctalia → noctalia.toml (Settings → Templates → Compositors
 # → Umbriel). Diese Datei + cfg/*.toml legen nur Struktur-Werte fest, KEINE Farben.
 #
-# Autostarts laufen NICHT hier: general.autostart bleibt leer. Alles startet über
-# systemd-user-Services an graphical-session.target (siehe autostart.nix) –
-# Umbriels umbriel-session.target bindet an graphical-session.target.
+# Autostarts laufen hier über general.autostart. Auf NixOS kamen sie früher aus
+# systemd-user-Services (autostart.nix); auf Arch gibt es diese Datei/Units nicht
+# mehr, deshalb startet Umbriel die Shell jetzt selbst.
 
 [include]
 files = [
@@ -24,7 +24,7 @@ files = [
 
 [general]
 xwayland = true
-autostart = []
+autostart = ["noctalia"]
 show_cheatsheet = false
 focus_on_activate = false
 honor_restored_maximize = false

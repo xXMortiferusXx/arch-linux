@@ -4,6 +4,12 @@
 # Bricht bei jedem Fehler ab (set -Eeuo pipefail); keine halben Installationen.
 set -Eeuo pipefail
 
+# Repo-Checkouts (und der ISO-Build) koennen mit umask 002 entstanden sein,
+# dann sind Verzeichnisse im Repo 775. cp -a uebernimmt diese Modi ins
+# Zielsystem und macht z. B. /usr gruppen-schreibbar - pkexec und der
+# Noctalia-Greeter-Sync lehnen solche Pfade als "untrusted" ab.
+umask 022
+
 SCRIPT_VERSION="2026-11-23.1"
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 

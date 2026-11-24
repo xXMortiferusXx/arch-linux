@@ -4,6 +4,10 @@ Stand: 2026-11-24. Diese Datei ist als Einstiegspunkt gedacht: Wer (auch ich
 später) hier weiterarbeitet, soll nach dem Lesen wissen, wie der Port aufgebaut
 ist, was schon verifiziert wurde, welche Fallstricke es gibt und was offen ist.
 
+**Auf `nex` verifizierte Fehlerbilder + Installer-Fixes** (Noctalia-Autostart,
+Greeter-Sync, GNOME-Keyring, Rechte nach `cp -a`): siehe
+[`docs/arch-fix.md`](arch-fix.md).
+
 ## 1. Ziel
 
 Der NixOS-Setup (`xXMortiferusXx/nix-config`) soll auf Arch Linux laufen –

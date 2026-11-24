@@ -1,0 +1,451 @@
+# Arch-Fix – verifizierte Fehlerbilder auf `nex`
+
+Stand: 2026-11-24. Bezug: Port von NixOS nach Arch (`docs/STATUS.md`).
+Hier stehen nur Dinge, die auf dem **laufenden** System reproduziert und
+behoben wurden – jeweils mit Ursache, Sofort-Fix und dem Fix für den
+Installer. Ziel: Eine Neuinstallation liefert diese Fehler nicht mehr.
+
+Betroffen: `nex` (Legion 5, Ryzen 5 5600H + RTX 3070 Mobile), Umbriel +
+Noctalia + noctalia-greeter (greetd).
+
+> **Stand der Umsetzung:** Die Fixes aus § 1, § 2 und § 5 sowie der
+> PAM-Fix aus § 3 sind im Installer eingebaut
+> (`hosts/{nex,lion-pc}/home/.config/umbriel/config.toml`, `install.sh`,
+> `lib/base.sh`, `lib/extras.sh`). Noch **nicht** durch einen kompletten
+> ISO-Installationslauf validiert – bisher nur `bash -n`, isolierte Tests
+> der `awk`-/`find`-Snippets und Abgleich mit dem laufenden System.
+
+---
+
+## 1. Noctalia startet nach dem Login nicht
+
+### Symptom
+Nach dem Login läuft Umbriel, aber es gibt keine Bar, kein Wallpaper, keine
+Shell. `pgrep noctalia` ist leer. Auf tty1 läuft die Wayland-Session, auf
+tty2 nur die Textkonsole – das ist **nicht** die Ursache, sondern nur der
+Grund, warum es zuerst so aussah.
+
+### Ursache
+`~/.config/umbriel/config.toml` hatte:
+
+```toml
+[general]
+autostart = []
+
+[include.optional]
+files = ["../autostart.nix"]   # NixOS-Relikt
+```
+
+Auf NixOS kamen die Autostarts aus `autostart.nix` (systemd-User-Units). Auf
+Arch existiert diese Datei und die Units nicht. Umbriel startet also nichts.
+
+### Fix
+```toml
+[general]
+autostart = ["noctalia"]
+```
+
+Das NixOS-Include ist entfernt, der Kommentar in der Datei erklärt jetzt,
+dass Umbriel die Shell selbst startet.
+
+**Wichtig:** Noctalia darf **nicht zusätzlich** über
+`~/.config/autostart/*.desktop` oder eine systemd-User-Unit starten – sonst
+laufen zwei Instanzen (doppelte Bar, doppelte IPC-Antworten).
+
+### Installer
+- `hosts/*/home/.config/umbriel/config.toml` muss
+  `autostart = ["noctalia"]` enthalten.
+- Kein `autostart.nix`-Include, keine Noctalia-Unit, kein XDG-Autostart.
+- Prüfen: `pgrep -a noctalia` und `ps -o pid,ppid,comm -C noctalia`
+  (PPID muss Umbriel sein).
+
+---
+
+## 2. Greeter-Sync: „refusing untrusted greeter sync helper“
+
+### Symptom
+`noctalia msg greeter-sync` scheitert, im Journal steht:
+
+```
+refusing untrusted greeter sync helper
+```
+
+Der Greeter behält Wallpaper/Palette/Font der Standard-Installation.
+
+### Ursache (zwei Blocker)
+
+1. **`/usr` war `775 root:root`** (gruppen-schreibbar). Der Greeter-Sync
+   prüft alle Elternverzeichnisse des Helpers; ein gruppen- oder
+   welt-schreibbarer Pfad gilt als unsicher → Helper wird abgelehnt.
+   Betroffen waren `/usr`, `/usr/local`, `/usr/local/bin`.
+2. **`/etc/polkit-1` war `775 root:root`**. Dadurch wurden die
+   Polkit-Regeln nicht zuverlässig geladen und `pkexec` konnte den Aufruf
+   nicht autorisieren.
+
+Beides kam vom Installer, siehe § 5 (Ursache: `cp -a` der Config-Overlays).
+
+### Fix (Sofort)
+```bash
+sudo chmod 755 /usr /usr/local /usr/local/bin
+sudo chmod 755 /etc/polkit-1
+```
+
+Passwortlosen Sync für den Benutzer aktivieren:
+```bash
+sudo noctalia-greeter passwordless-sync enable mortiferus
+# -> Enabled passwordless appearance sync for 'mortiferus'.
+```
+
+Ergebnis: `/etc/polkit-1/rules.d/49-noctalia-greeter-passwordless-sync.rules`
+(Verzeichnis ist `750 root:polkitd`, deshalb braucht `status`/`ls` dort
+`sudo`).
+
+### Wichtig: Neustart von Noctalia nötig
+Der IPC-Handler `greeter-sync` wird **nur beim Start** von Noctalia
+registriert. Vor dem Fix lief der Helper noch als „untrusted“, deshalb
+antwortete der laufende Prozess weiter mit `error: unknown command`.
+Nach einmal Aus-/Einloggen (oder Reboot) ist der Handler da.
+
+### Settings (bleiben so)
+`~/.local/state/noctalia/settings.toml`:
+
+```toml
+[shell]
+polkit_agent = true
+
+[shell.greeter_sync]
+auto_sync = true
+privilege_command = "pkexec"
+```
+
+`auto_sync = true` überträgt Änderungen an Wallpaper, Palette, Theme-Modus
+und Shell-Font (kurz debounced) automatisch. Für eine reine
+Corner-Radius-Änderung reicht das nicht – dann einmal
+`noctalia msg greeter-sync`.
+
+### Verifikation
+```bash
+noctalia msg greeter-sync                    # -> ok
+journalctl --user -b | grep -i 'greeter-sync'
+```
+Erwartete Zeilen (gekürzt):
+```
+[greeter-sync] greeter sync: staging output_transforms "eDP-1:normal"
+[greeter-sync] greeter sync: staging output_scales "eDP-1:1.000"
+[greeter-sync] greeter sync: staged wallpaper for 'eDP-1' -> wallpaper-eDP-1.png
+[greeter-sync] synced shell appearance to greeter
+```
+```bash
+sudo ls -l /var/lib/noctalia-greeter/        # sync.toml + wallpaper-eDP-*.png
+sudo cat /var/lib/noctalia-greeter/sync.toml
+sudo noctalia-greeter passwordless-sync status mortiferus
+```
+Dann ausloggen: Der Greeter liest `sync.toml` beim Start und zeigt das
+Design.
+
+### Installer (eingebaut)
+- `/var/lib/noctalia-greeter` als `750 greeter:greeter` anlegen und
+  `greeter.toml` (644, `greeter:greeter`) hineinlegen – war schon so.
+- Rechte-Normalisierung nach dem Overlay-Kopieren in `lib/base.sh`
+  (siehe § 5) → `/usr` ist beim Sync vertrauenswürdig.
+- `extras_desktop` ruft im Chroot jetzt
+  `noctalia-greeter passwordless-sync enable "$username"` auf – nach der
+  Rechte-Normalisierung, vor dem ersten Login. Schlägt es fehl, gibt es
+  nur eine Warnung mit dem Nachhol-Befehl (kein Abbruch der Installation).
+- **Offen:** Prüfen, ob
+  `hosts/nex/config/etc/polkit-1/rules.d/50-noctalia-sync.rules` noch
+  gebraucht wird. Die Regel adressiert die alte Action
+  `org.noctalia.greeter.sync-appearance`; die aktuelle
+  `noctalia-greeter`-Version legt ihre Regel selbst über
+  `passwordless-sync enable` ab. Doppelte Regeln schaden nicht, die alte
+  Action-ID greift aber evtl. nicht mehr.
+
+---
+
+## 3. GNOME-Keyring wird beim Login nicht entsperrt
+
+### Symptom
+Nach dem Login erscheint ein Dialog „Der Schlüsselbund … wurde nicht
+entsperrt“ (gcr-prompter). Im Journal:
+
+```
+gkr-pam: no password is available for user
+gnome-keyring-daemon: couldn't unlock the login keyring
+```
+
+Unter NixOS trat das nicht auf, weil das PAM-Modul die Zeile korrekt
+einsortiert hat.
+
+### Ursache
+`lib/extras.sh` (`extras_keyring`, ca. Zeile 445) fügt die auth-Zeile so ein:
+
+```sh
+sed -i '1a auth       optional     pam_gnome_keyring.so' "$f"
+```
+
+Das landet direkt nach `#%PAM-1.0`, also **vor** `auth include
+system-local-login`. Zu diesem Zeitpunkt hat `pam_unix` das Passwort noch
+nicht geprüft und `PAM_AUTHTOK` ist leer → `gkr-pam` meldet „no password is
+available“ und der Bund bleibt zu.
+
+Aktueller (falscher) Stand auf `nex`:
+
+```
+1  #%PAM-1.0
+2  auth       optional     pam_gnome_keyring.so     <- zu früh
+4  auth       requisite    pam_nologin.so
+5  auth       include      system-local-login
+...
+9  session    optional     pam_gnome_keyring.so auto_start   <- korrekt
+```
+
+`/etc/pam.d/greetd` und `/etc/pam.d/login` sind beide betroffen. Die
+Paket-Defaults (`greetd`, `util-linux`) enthalten **keine**
+Keyring-Zeilen – der Installer muss sie also selbst und an der richtigen
+Stelle setzen.
+
+### Korrekte Reihenfolge
+Die auth-Zeile gehört **hinter** den letzten `auth`-Eintrag (bzw. hinter
+`auth include system-local-login`), die session-Zeile ans Ende:
+
+```
+#%PAM-1.0
+
+auth       required     pam_securetty.so
+auth       requisite    pam_nologin.so
+auth       include      system-local-login
+auth       optional     pam_gnome_keyring.so
+
+account    include      system-local-login
+session    include      system-local-login
+session    optional     pam_gnome_keyring.so auto_start
+```
+
+`use_authtok` ist nicht nötig und für Fingerprint-Logins sogar schädlich
+(dort gibt es kein Passwort, der Login soll trotzdem funktionieren).
+
+### Fix (Sofort)
+Fertiges Skript liegt unter `/tmp/opencode/pam-keyring-fix.sh`:
+
+```bash
+sudo bash /tmp/opencode/pam-keyring-fix.sh
+grep -n pam_gnome_keyring /etc/pam.d/greetd /etc/pam.d/login
+```
+
+Es legt Backups (`*.bak-<datum>`) an, entfernt eine evtl. vorhandene
+falsche auth-Zeile und setzt sie hinter den letzten `auth`-Eintrag. Danach
+einmal neu einloggen.
+
+### Installer (eingebaut in `lib/extras.sh`, `extras_keyring`)
+
+Der Code unten ist 1:1 der eingebaute Stand. Wichtig: kein
+„schon vorhanden“-Guard mehr – eine falsch platzierte Zeile aus einer alten
+Installation wird sonst nie repariert. Die Session-Zeile wird nur ergänzt,
+wenn sie fehlt.
+
+```sh
+extras_keyring() {
+  ui_step "Schluesselbund (gnome-keyring)"
+  local pam f
+  for pam in login greetd; do
+    f="$TARGET/etc/pam.d/$pam"
+    [ -f "$f" ] || continue
+
+    # WICHTIG: Die auth-Zeile muss HINTER dem auth-include stehen. Erst dort
+    # hat pam_unix PAM_AUTHTOK gesetzt; davor meldet gkr-pam "no password is
+    # available for user" und der Bund bleibt zu.
+    # Bewusst kein "schon vorhanden"-Guard: eine falsch platzierte Zeile aus
+    # einer alten Installation wird so bei jedem Lauf korrigiert.
+    awk '
+      /^auth[[:space:]]+optional[[:space:]]+pam_gnome_keyring\.so([[:space:]]|$)/ { next }
+      { line[++n] = $0 }
+      END {
+        last = 0
+        for (i = 1; i <= n; i++)
+          if (line[i] ~ /^auth[[:space:]]/) last = i
+        for (i = 1; i <= n; i++) {
+          print line[i]
+          if (i == last) print "auth       optional     pam_gnome_keyring.so"
+        }
+      }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+
+    # session-Zeile genau einmal, ans Ende (startet den Daemon und entriegelt)
+    grep -qE '^session[[:space:]]+optional[[:space:]]+pam_gnome_keyring\.so' "$f" \
+      || printf 'session    optional     pam_gnome_keyring.so auto_start\n' >> "$f"
+  done
+  ui_ok "PAM: Keyring entriegelt automatisch beim Login"
+}
+```
+
+Auf `nex` wurde derselbe Stand mit `/tmp/opencode/pam-keyring-fix.sh`
+angewendet; das Skript legt Backups (`*.bak-<datum>`) an.
+
+### Verifikation
+```bash
+grep -n pam_gnome_keyring /etc/pam.d/greetd /etc/pam.d/login
+journalctl -b | grep -i gkr-pam     # darf NICHT "no password is available" zeigen
+```
+Nach dem Re-Login: kein Keyring-Dialog mehr. Falls doch, hat der Bund ein
+**anderes Passwort** als das Login-Passwort (z. B. weil er beim ersten
+Prompt mit leerem/abweichendem Passwort angelegt wurde) → in Seahorse
+(„Passwörter und Schlüssel“ → Standard-Schlüsselbund → Passwort ändern) auf
+das Login-Passwort setzen.
+
+Hinweis: Bei Login per Fingerprint gibt es grundsätzlich kein Passwort für
+`gkr-pam`; dann bleibt nur ein separater Mechanismus (TPM/`pam_gaze`) oder
+der Keyring bleibt zu. Für Passwort-Login über greetd ist die Reihenfolge
+oben die vollständige Lösung.
+
+---
+
+## 4. Weitere Auffälligkeiten (keine Blocker)
+
+### 4.1 Gruppen-schreibbare Verzeichnisse unter `/etc`
+Nach der Installation waren 26 Root-Verzeichnisse `775 root:root`, u. a.
+`/etc/systemd`, `/etc/systemd/system`, `/etc/udev`, `/etc/NetworkManager`,
+`/etc/pipewire`, `/etc/wireplumber`, `/etc/xdg`, `/etc/modprobe.d`,
+`/etc/sysctl.d`, `/etc/tmpfiles.d`, `/etc/fastfetch`, `/etc/firefox`.
+
+Ursache und Fix: § 5. Auf `nex` bereits bereinigt (bis auf die 26
+`/etc`-Verzeichnisse, die man mit einem Einzeiler nachziehen kann):
+
+```bash
+sudo find /etc -xdev -type d -perm -0020 -user root -group root -exec chmod g-w {} +
+```
+
+### 4.2 `display.toml`: GPU-/Konnektor-Kommentar vertauscht
+Der Kommentar in `hosts/nex/home/.config/umbriel/cfg/display.toml` sagt:
+PRIME-Hybrid (AMD iGPU) → `eDP-2`, dGPU-only → `eDP-1`. Auf `nex` ist es
+umgekehrt: `eDP-1` ist das Panel (AU Optronics, AMD iGPU), `eDP-2` gehört
+zur NVIDIA-dGPU und ist im Hybrid-Betrieb disconnected. Beide
+`[output]`-Blöcke sind inhaltlich identisch, daher ist es nur ein
+Doku-Fehler – aber ein irreführender. Bitte beim nächsten Edit korrigieren.
+
+### 4.3 `systemctl --user restart umbriel.service` startet den nested Backend
+Die User-Manager-Umgebung kann `WAYLAND_DISPLAY=wayland-0` enthalten. Ein
+Restart von `umbriel.service` erbt das und Umbriel versucht dann den
+nested Wayland-Backend statt DRM. `start-umbriel` räumt die Variablen beim
+Login-Rentry auf, ein manueller Restart tut das nicht.
+
+Optionale Härtung (Drop-in):
+```ini
+# /etc/systemd/user/umbriel.service.d/10-unset-wayland.conf
+[Service]
+UnsetEnvironment=WAYLAND_DISPLAY WAYLAND_SOCKET DISPLAY
+```
+
+### 4.4 `noctalia-greeter passwordless-sync status` braucht `sudo`
+Auf `nex` ist `/etc/polkit-1/rules.d` `750 root:polkitd` – das ist der
+Paket-Default. Als normaler Benutzer scheitert das Lesen, mit `sudo`
+funktioniert es. Nach einer frischen Installation mit normalisierten
+Rechten ist der Ordner `755 root:root`; dann geht `status` auch ohne
+`sudo` (siehe § 5, „Bewusste Abweichung“).
+
+---
+
+## 5. Installer-Fix: Rechte nach dem Overlay-Kopieren normalisieren
+
+### Ursache
+`lib/base.sh` kopiert die Config-Overlays mit `cp -a`:
+
+```sh
+cp -a "${REPO_DIR:-.}/shared/config/." "$TARGET/"
+cp -a "$profile/config/." "$TARGET/"
+```
+
+`cp -a` erhält Verzeichnis-Modi. Git speichert keine Verzeichnis-Modi; der
+Checkout (bzw. der ISO-Build) lief mit `umask 002`, also entstanden die
+Verzeichnisse im Repo als `775`. Beim Mergen auf das Zielsystem werden
+diese Modi auf die **bestehenden** Verzeichnisse wie `/usr`, `/etc/systemd`
+usw. angewendet – daher `775 root:root` und die abgelehnten Helper.
+
+Dass genau die Verzeichnisse betroffen sind, die es im Overlay gibt
+(`shared/config/usr`, `shared/config/etc/...`), bestätigt die Ursache.
+
+### Fix (eingebaut)
+1. `install.sh`, direkt nach `set -Eeuo pipefail`:
+   ```sh
+   umask 022
+   ```
+2. `lib/base.sh`, nach beiden Overlay-`cp -a`-Aufrufen:
+   ```sh
+   if [ -d "$TARGET/etc" ]; then
+     find "$TARGET/etc" "$TARGET/usr" -xdev \
+       \( -type d -o -type f \) -perm /022 -user root -group root \
+       -exec chmod go-w {} + 2>/dev/null || true
+   fi
+   ```
+   (`-perm /022` = Gruppen- **oder** Andere-Schreibrecht gesetzt;
+   `chmod go-w` entfernt nur das Schreibrecht, `r-x` und Exec-Bits
+   bleiben. Gilt bewusst auch für Dateien: ein gruppen-schreibbares
+   Skript in `/usr/local/bin` wäre derselbe Vertrauensbruch.)
+
+**Warum nicht `cp -a --no-preserve=mode`?** Getestet: cp legt neue Dateien
+dann mit `0666 & ~umask` an, also `644` – das Exec-Bit der Skripte in
+`usr/local/bin` geht verloren. Die Normalisierung nach `cp -a` ist
+deshalb der richtige Weg.
+
+**Bewusste Abweichung:** `/etc/polkit-1/rules.d` ist im Paket
+`750 root:polkitd`, nach der Normalisierung `755 root:root`. Funktional
+unkritisch (polkitd liest die Regeln weiterhin, der Ordner ist nicht
+schreibbar) – nur `noctalia-greeter passwordless-sync status` braucht dann
+kein `sudo` mehr.
+
+### Prüfen (nach Installation)
+```bash
+find /usr /usr/local /etc -xdev -type d -perm -0020 -user root -group root
+# muss leer sein (bzw. nur bewusst gruppen-schreibbare Pfade zeigen)
+stat -c '%a %U:%G %n' /usr /usr/local /usr/local/bin /etc/polkit-1
+```
+
+---
+
+## 6. Checkliste nach einer Neuinstallation
+
+```bash
+# 1) Shell-Autostart
+pgrep -a noctalia
+noctalia msg status
+ps -o pid,ppid,comm -C noctalia          # PPID = umbriel
+
+# 2) Rechte (Voraussetzung fuer Greeter-Sync/pkexec)
+stat -c '%a %U:%G %n' /usr /usr/local /usr/local/bin /etc/polkit-1
+sudo find /etc -xdev -type d -perm -0020 -user root -group root
+
+# 3) Greeter-Sync
+noctalia msg greeter-sync                       # -> ok
+journalctl --user -b | grep -i greeter-sync
+sudo ls -l /var/lib/noctalia-greeter/
+sudo cat /var/lib/noctalia-greeter/sync.toml
+sudo noctalia-greeter passwordless-sync status <user>
+
+# 4) Keyring
+grep -n pam_gnome_keyring /etc/pam.d/greetd /etc/pam.d/login
+journalctl -b | grep -i gkr-pam                 # kein "no password is available"
+
+# 5) Optik
+#    ausloggen -> Greeter muss Wallpaper/Palette/Font/Layout zeigen
+```
+
+Wenn 2–4 passen, ist der Rest (Wallpaper, Palette, Font, Layout im Greeter)
+automatisch korrekt – `auto_sync = true` übernimmt das beim Login und bei
+Änderungen.
+
+---
+
+## 7. Umgesetzte Änderungen (2026-11-24)
+
+| Datei | Änderung |
+|---|---|
+| `hosts/nex/home/.config/umbriel/config.toml` | `autostart = ["noctalia"]`, NixOS-Kommentar ersetzt |
+| `hosts/lion-pc/home/.config/umbriel/config.toml` | dito |
+| `install.sh` | `umask 022` nach `set -Eeuo pipefail` |
+| `lib/base.sh` | Rechte-Normalisierung (`go-w`) nach den Overlay-`cp -a`-Aufrufen |
+| `lib/extras.sh` (`extras_keyring`) | PAM-Reihenfolge via `awk`, „schon vorhanden“-Guard entfernt |
+| `lib/extras.sh` (`extras_desktop`) | `noctalia-greeter passwordless-sync enable "$username"` im Chroot |
+| `docs/STATUS.md` | Verweis auf diese Datei |
+
+Noch offen: kompletter Testlauf über die ISO (`./scripts/build-iso.sh` +
+`test/test-installer.sh`), danach die Checkliste aus § 6 auf dem
+installierten System. Die laufende Maschine `nex` wurde zusätzlich manuell
+gefixt (Rechte, PAM, passwordless-sync) – dokumentiert in § 1–3.

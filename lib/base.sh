@@ -167,6 +167,19 @@ configure_base() {
     ui_ok "Configs kopiert (shared + Host)"
   fi
 
+  # cp -a uebernimmt auch die Verzeichnis-Modi aus dem Repo-Checkout. Git
+  # speichert keine Dir-Modi; ein Checkout mit umask 002 liefert 775 und
+  # ueberschreibt damit die Modi bestehender Ziele wie /usr, /usr/local oder
+  # /etc/systemd. Gruppen-/welt-schreibbare Pfade lassen pkexec und den
+  # Noctalia-Greeter-Sync den Helper ablehnen ("refusing untrusted greeter
+  # sync helper"). Deshalb nach dem Kopieren nur das Schreibrecht fuer Gruppe
+  # und Andere entfernen - r-x und die Exec-Bits der Skripte bleiben.
+  if [ -d "$TARGET/etc" ]; then
+    find "$TARGET/etc" "$TARGET/usr" -xdev \
+      \( -type d -o -type f \) -perm /022 -user root -group root \
+      -exec chmod go-w {} + 2>/dev/null || true
+  fi
+
   # Home-Dotfiles: erst shared/home (Shell, nvim, icons ...), dann Host.
   if [ -d "${REPO_DIR:-.}/shared/home" ]; then
     cp -a "${REPO_DIR:-.}/shared/home/." "$TARGET/home/$username/"
