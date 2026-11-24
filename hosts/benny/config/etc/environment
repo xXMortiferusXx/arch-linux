@@ -1,0 +1,16 @@
+# Session-Variablen (aus modules/hardware/intel-ivy.nix, environment-benny.nix,
+# environment-common.nix)
+XCURSOR_THEME=Bibata-Modern-Ice
+XCURSOR_SIZE=24
+QT_QPA_PLATFORMTHEME=qt6ct
+TRACKER_USE_RUNNER=0
+TZ=Europe/Berlin
+EDITOR=nvim
+ELECTRON_OZONE_PLATFORM_HINT=auto
+
+# Intel Ivy Bridge (Gen7): VA-API/VDPAU ueber den Legacy-Treiber i965.
+# iHD/oneVPL gibt es erst ab Gen9, mesa-va-drivers kann dort nichts.
+LIBVA_DRIVER_NAME=i965
+VDPAU_DRIVER=va_gl
+# wlroots darf auf Software-Rendering zurueckfallen (alte iGPU, VM/Remote)
+WLR_RENDERER_ALLOW_SOFTWARE=1

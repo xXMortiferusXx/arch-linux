@@ -1,0 +1,36 @@
+# Host-Profil benny (Desktop, Intel i5-3xxx / Ivy Bridge, HD 2500/4000).
+# Gemeinsames steht in shared/packages.list.
+# Status: VORBEREITET, auf Hardware noch nicht getestet.
+
+# --- Intel-Grafik (Gen7: Mesa/ANV + i965 VA-API) --------------------------
+vulkan-intel
+lib32-vulkan-intel
+libva-intel-driver
+lib32-libva-intel-driver
+intel-gpu-tools
+
+# --- Monitor-Helligkeit / Sensoren (I2C=1) --------------------------------
+ddcutil
+i2c-tools
+
+# --- Arctis Sound Manager: Laufzeit- und Build-Abhaengigkeiten -------------
+# Das AUR-Paket selbst wird in post.sh gebaut (Upstream 1.7.10, enthaelt den
+# echten 7.1-Fix; der eigene Fork ist dafuer nicht mehr noetig).
+pyside6
+qt6-svg
+python-babel
+python-pillow
+python-pyudev
+python-pyusb
+python-ruamel-yaml
+python-dbus-next
+swh-plugins
+python-installer
+python-build
+python-wheel
+python-setuptools
+uv
+
+# --- Anwendungen (benny) --------------------------------------------------
+# microsoft-edge-stable-bin (chaotic) und boosteroid (AUR) kommen in post.sh,
+# weil chaotic erst nach pacstrap eingebunden wird.

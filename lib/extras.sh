@@ -10,11 +10,11 @@ install_extras() {
   extras_chaotic
   extras_snapshots "$profile"
   extras_btrfs
-  if [ "${GPU:-nvidia}" = nvidia ]; then
-    extras_nvidia "$profile"
-  else
-    extras_graphics_amd
-  fi
+  case "${GPU:-nvidia}" in
+    nvidia) extras_nvidia "$profile" ;;
+    intel)  extras_graphics_intel ;;
+    *)      extras_graphics_amd ;;
+  esac
   extras_desktop "$profile"
   extras_gaming "$profile"
   if [ "${SUNSHINE:-0}" = 1 ]; then
@@ -227,6 +227,19 @@ extras_graphics_amd() {
   # Session-Variablen (radeonsi, Cursor, Qt-Theme) stehen in
   # hosts/<host>/config/etc/environment; Mesa/RADV kommt aus shared.
   ui_ok "AMD: Mesa/RADV aus Paketliste, Env aus Host-Config"
+}
+
+# Intel-Grafik (Pendant zu modules/hardware/intel-ivy.nix): Mesa/ANV/i965
+# kommen aus der Host-Paketliste, hier nur die Kontrolle.
+extras_graphics_intel() {
+  ui_step "Grafik (Intel/i965)"
+  # Gen7 (Ivy Bridge): vulkan-intel (ANV) + libva-intel-driver (i965) stehen in
+  # hosts/<host>/packages.list, LIBVA_DRIVER_NAME=i965 in der Host-Config.
+  if arch-chroot "$TARGET" pacman -Qq vulkan-intel libva-intel-driver >/dev/null 2>&1; then
+    ui_ok "Intel: ANV (Vulkan) + i965 (VA-API) installiert"
+  else
+    ui_warn "Intel: vulkan-intel/libva-intel-driver fehlen in packages.list"
+  fi
 }
 
 # Chaotic-AUR + Umbriel/Noctalia/Greeter + greetd.

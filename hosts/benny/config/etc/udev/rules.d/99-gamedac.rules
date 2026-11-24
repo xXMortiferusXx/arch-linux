@@ -1,0 +1,5 @@
+# Arctis Pro + GameDAC Gen1 (aus modules/hardware/audio-gamedac.nix):
+# USB-Autosuspend aus, sonst knackst/suspendet die Karte im Betrieb.
+# 1280 = Control/HID, 1282 = Audio (SteelSeries = 1038).
+SUBSYSTEM=="usb", ATTR{idVendor}=="1038", ATTR{idProduct}=="1280", ATTR{power/control}="on"
+SUBSYSTEM=="usb", ATTR{idVendor}=="1038", ATTR{idProduct}=="1282", ATTR{power/control}="on"

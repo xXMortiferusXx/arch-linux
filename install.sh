@@ -154,7 +154,7 @@ if [ -f "$PROFILE/settings.env" ]; then
   . "$PROFILE/settings.env"
 fi
 USERNAME="${USERNAME:-mortiferus}"
-GPU="${GPU:-nvidia}"            # nvidia | amd
+GPU="${GPU:-nvidia}"            # nvidia | amd | intel
 SUNSHINE="${SUNSHINE:-0}"       # Game-Streaming-Host
 SCANNER="${SCANNER:-1}"         # NAPS2 / sane
 FLATPAK="${FLATPAK:-0}"         # Flatpak + Bazaar

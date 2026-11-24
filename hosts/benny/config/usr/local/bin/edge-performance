@@ -1,0 +1,3 @@
+#!/bin/sh
+# Edge mit Performance-Governor starten (Cloud-Gaming ueber den Browser).
+exec game-performance microsoft-edge "$@"

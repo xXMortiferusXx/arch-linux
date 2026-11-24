@@ -1,0 +1,1 @@
+transparent_hugepage=madvise intel_pstate=active vt.global_cursor_default=0

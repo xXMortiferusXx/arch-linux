@@ -74,21 +74,21 @@ nur gemountet (nie formatiert), kein `@gaming`-Subvolume, fstab mit
 Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 `SSHD=1 install-arch …` für Tests auf einem Host ohne sshd.
 
-| Variable | Bedeutung | nex | lion-pc |
-|---|---|---|---|
-| `USERNAME` | Benutzer | mortiferus | lion |
-| `GPU` | `nvidia` oder `amd` (steuert NVIDIA-Pfad vs. radeonsi-Env) | nvidia | amd |
-| `SUNSHINE` | Game-Streaming-Host | 1 | 0 |
-| `SCANNER` | NAPS2 installieren | 1 | 0 |
-| `FLATPAK` | Flatpak + Bazaar + Flathub | 0 | 1 |
-| `LAPTOP` | Legion-Akku-Limit (60 %) | 1 | 0 |
-| `SSHD` | SSH-Server | 0 | 1 |
-| `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 |
-| `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp |
-| `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 |
-| `BEDROCK` | BedrockOnLinux-AppImage (Windows-Client, Xbox-Friends/Einladungen) | 0 | 1 |
-| `FAUGUS` | Faugus Launcher (chaotic) | 1 | 0 |
-| `ORCA` | OrcaSlicer (chaotic, `orca-slicer-bin`) | 1 | 0 |
+| Variable | Bedeutung | nex | lion-pc | benny (vorbereitet) |
+|---|---|---|---|---|
+| `USERNAME` | Benutzer | mortiferus | lion | benny |
+| `GPU` | `nvidia`, `amd` oder `intel` | nvidia | amd | intel |
+| `SUNSHINE` | Game-Streaming-Host | 1 | 0 | 0 |
+| `SCANNER` | NAPS2 installieren | 1 | 0 | 0 |
+| `FLATPAK` | Flatpak + Bazaar + Flathub | 0 | 1 | 1 |
+| `LAPTOP` | Legion-Akku-Limit (60 %) | 1 | 0 | 0 |
+| `SSHD` | SSH-Server | 0 | 1 | 1 (öffentlich, DynDNS) |
+| `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 | 1 |
+| `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp | – |
+| `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 | 0 |
+| `BEDROCK` | BedrockOnLinux-AppImage (Windows-Client, Xbox-Friends/Einladungen) | 0 | 1 | 0 |
+| `FAUGUS` | Faugus Launcher (chaotic) | 1 | 0 | 0 |
+| `ORCA` | OrcaSlicer (chaotic, `orca-slicer-bin`) | 1 | 0 | 0 |
 
 Der User bekommt immer `wheel,audio,video`; sysusers-Gruppen werden vor
 `useradd` angelegt (im Chroot existieren sie sonst nicht).
@@ -199,13 +199,30 @@ unter `scripts/lion-home-restore.sh`.
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
 
-### benny (geplant, noch nicht angelegt)
-Intel Ivy Bridge (i5-3xxx, HD 2500), Arctis GameDAC (Arctis Sound Manager,
-benny-only!), Flatpak, DNS 192.168.178.1 (FritzBox), Realtek-r8169-Resume-Fix,
-kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
-`SUNSHINE=0`, `SCANNER=0` (kein Scanner), `FLATPAK=1`, `SSHD=1`,
-`LAPTOP=0`, `I2C=0`, eigener User `benny`, GameDAC-Config, Arctis-Paket
-(AUR/Flake → auf Arch als AUR-Build oder Flatpak).
+### benny (Profil vorbereitet, auf Hardware **ungetestet**)
+
+Desktop bei Benny, **nicht** im eigenen LAN (DynDNS, Zugriff von `nex`).
+Intel Ivy Bridge (i5-3xxx, HD 2500/4000), Arctis Pro + GameDAC Gen1,
+Cloud-Gaming (Edge/Boosteroid), Flatpak, DNS `192.168.178.1` (FritzBox).
+
+- **GPU=`intel`** – neuer Pfad `extras_graphics_intel`; `vulkan-intel` (ANV)
+  und `libva-intel-driver` (i965) stehen in `hosts/benny/packages.list`,
+  `LIBVA_DRIVER_NAME=i965` in `hosts/benny/config/etc/environment`.
+- **I2C=1** (bewusst abweichend vom alten Plan): die NixOS-Config gibt Benny
+  `i2c`-Gruppe, udev-Regel und `ddcutil`.
+- **SSH** ist öffentlich erreichbar: `nftables.conf` erlaubt Port 22 von
+  überall, `sshd_config.d/10-benny-hardening.conf` nur Keys, `AllowUsers benny`.
+- **GameDAC**: udev (USB-Autosuspend aus), WirePlumber (S32LE/48 kHz/2 ch,
+  kein Suspend), `game-performance`/`edge-performance`.
+- **ASM**: Upstream 1.7.10 aus der AUR (der Fork hat nur 1.4.28–1.4.34
+  backportet; „echtes 7.1" ist seit 1.7.1 drin). Installation in
+  `hosts/benny/post.sh` zusammen mit `python-pulsectl` und `boosteroid`.
+- Details und Testliste: `hosts/benny/README.md`.
+
+Quelle der Werte: `nix-config` (`hosts/benny`, `modules/hardware/*`,
+`modules/home/benny`). Dort wurde **nichts** geändert – die NixOS-Config ist
+derzeit nicht testbar; Anpassungen bei Benny laufen später über SSH bzw. sein
+eigenes Repo.
 
 ## 7. Portierungsmatrix (NixOS → Arch)
 
@@ -213,7 +230,8 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 |---|---|---|
 | `system/common` (Locale, Networking, Security, ananicy, audio, printing, shell, editor, fastfetch, terminal, tools, desktop, polkit, fonts, thunar, greeter, umbriel) | shared + host | ✅ (außer `nix-settings`, `nix-ld`, Nix-Tools) |
 | `boot-nex` / `boot-lion` (Kernel-Params, Blacklist, ntsync, zram) | `kernel-cmdline`, `modprobe.d`, `modules-load.d`, zram-generator | ✅ |
-| `environment-*` (Session-Variablen) | `hosts/*/config/etc/environment` | ✅ (Cursor, Qt, radeonsi, Shader-Cache) |
+| `environment-*` (Session-Variablen) | `hosts/*/config/etc/environment` | ✅ (Cursor, Qt, radeonsi/i965, Shader-Cache) |
+| `intel-ivy` (VA-API i965, no CUDA) | `GPU=intel`, `vulkan-intel`, `libva-intel-driver`, Env | ✅ (vorbereitet, ungetestet) |
 | `nvidia-prime` | `extras_nvidia`, `modprobe.d/nvidia.conf`, VRAM-Profile, `nvidia-offload` | ✅ (Laufzeit ungetestet) |
 | `legion` (Akku 60 %, iwlmvm, irqbalance, µcode) | Unit+Skript, modprobe, `amd-ucode` | ✅ |
 | `bpftune` (Netzwerk-Auto-Tuning) | `bpftune-git` (chaotic) + `bpftune.service` | ✅ |
