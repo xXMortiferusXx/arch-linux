@@ -8,7 +8,6 @@ capsule_thickness = 0.79999998584389687
 end = [
     "tray",
     "bar",
-    "nix-monitor",
     "notifications",
     "clipboard",
     "network",
@@ -206,14 +205,11 @@ steampoacher_enabled = true
 auto_open_filemanager = true
 file_manager_cmd = "thunar"
 
-[plugin_settings."avivbintangaringga/nix-monitor"]
-update_command = "arch-update"
-
 [plugin_settings."raycursive/discord-voice"]
-discord_binary = "/etc/profiles/per-user/lion/bin/discord"
+discord_binary = "/usr/bin/discord"
 
 [plugins]
-enabled = [ "avivbintangaringga/nix-monitor", "aristides/udiskie", "noctalia/wallhaven" ]
+enabled = [ "aristides/udiskie", "noctalia/wallhaven" ]
 
     [[plugins.source]]
     auto_update = true
@@ -296,10 +292,6 @@ type = "alexander/game-launcher:launcher"
 
 [widget.network]
 show_label = false
-
-[widget.nix-monitor]
-show_text = false
-type = "avivbintangaringga/nix-monitor:nix-monitor"
 
 [widget.status]
 type = "aristides/udiskie:status"

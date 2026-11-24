@@ -166,6 +166,9 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
   Timer, AUR+Flatpak), `arch-check` (Status), `arch-clean` (Orphans/Cache).
 - **`prime-run`** (Paket `nvidia-prime`) und **`nvidia-offload`** (Port des
   NixOS-Wrappers, zusätzlich `VK_DRIVER_FILES`) existieren beide.
+- **Noctalia**: das Plugin `avivbintangaringga/nix-monitor` (Bar-Widget +
+  `update_command`) ist entfernt – es ruft `nixos-update` auf. `discord_binary`
+  zeigt auf `/usr/bin/discord` statt auf einen Nix-Profil-Pfad.
 - **`game-performance`**: Performance-Profil + Inhibit + Helligkeit; nex nutzt
   brightnessctl, lion ddcutil. EPP/Governor macht power-profiles-daemon.
 - **Zink/dlss-Wrapper**, **thunar-extract**, **touchpad-toggle**,
