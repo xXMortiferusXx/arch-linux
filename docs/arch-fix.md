@@ -465,4 +465,114 @@ automatisch korrekt – `auto_sync = true` übernimmt das beim Login und bei
 Noch offen: kompletter Testlauf über die ISO (`./scripts/build-iso.sh` +
 `test/test-installer.sh`), danach die Checkliste aus § 6 auf dem
 installierten System. Die laufende Maschine `nex` wurde zusätzlich manuell
-gefixt (Rechte, PAM, passwordless-sync) – dokumentiert in § 1–3.
+gefixt (Rechte, PAM, passwordless-sync) – dokumentiert in § 1–3. Die
+zweite Runde (Audio, udev, Greeter-Home, WLAN-Regdomain) steht in § 8.
+
+---
+
+## 8. Weitere Portierungsfehler (2026-11-24)
+
+Beim ersten vollständigen Systemcheck nach dem Login gefunden, live auf
+`nex` behoben und ins Installer-Overlay übernommen.
+
+### 8.1 WirePlumber: zusammengesetzte Schlüssel sind kein SPA-JSON
+Die aus NixOS übernommene `90-gc7.conf` enthielt
+`actions."update-props"."priorities" = [...]`. SPA-JSON verkettet keine
+gequoteten Schlüsselteile mit Punkten; WirePlumber verwirft die ganze
+Datei:
+
+```
+wp-conf: failed to open '.../90-gc7.conf':
+section 'device.profile.priority.rules' has no value
+```
+
+Folge: weder die Profil-Priorität noch `monitor.alsa.rules` wurden geladen;
+die GC7 blieb auf `analog-stereo` (kein 7.1-Game-/Voice-Stream, kein
+ChatMix). Richtig ist die dokumentierte Form:
+
+```
+actions = {
+    update-props = {
+        priorities = [ "pro-audio" ]
+    }
+}
+```
+
+Verifiziert: `pactl list cards` → `Active Profile: pro-audio`;
+`wpctl status` listet `GC7 Game (7.1)` und `GC7 Voice (Chat)`.
+
+### 8.2 `param_eq`: `config.filename` ist kein Node-Schlüssel
+In PipeWire 1.6 gehört der Dateiname in die `config`-Sektion:
+
+```
+config = { filename = "/etc/pipewire/mmx330-filters.txt" }
+```
+
+Vorher: `spa.filter-graph: unexpected node key 'config.filename'` und
+`param_eq: requires a config section`. Der virtuelle Sink erschien zwar,
+blieb aber stumm. Nach dem Fix lädt der Graph beim ersten Ton ohne Fehler
+(Test mit `pw-play`, `pw-top` zeigt 8 Kanäle @ 48 kHz).
+
+### 8.3 udev `RUN`: `$$`-Escapes beim Port verloren
+NixOS schreibt die Regel als `$$(cat ...)`: udev ersetzt `$$` durch ein
+literales `$` und übergibt erst dann an `/bin/sh -c`. In der Arch-Datei
+standen nur noch `$(...)`; udev deutet das als eigene Substitution:
+
+```
+Invalid value "..." for RUN (char 101: invalid substitution type)
+```
+
+Dadurch wurde `snd_hda_intel.power_save` nie geschaltet. Statt die Escapes
+zu reparieren, liegt die Logik jetzt in
+`/usr/local/bin/snd-hda-powersave` (`init|ac|battery`); die Regeln rufen
+nur noch das Skript auf. Getestet: `battery` → 10, `ac` → 0.
+
+### 8.4 Greeter ohne HOME
+Das `greetd`-Paket legt `greeter` mit `HOME=/` an; der Keyring im
+Greeter-Session scheiterte mit
+`unable to create keyring dir: /.local/share/keyrings`. `extras_desktop`
+setzt das Home jetzt auch bei bereits existierendem User per
+`usermod -d /var/lib/noctalia-greeter`. Live nachgezogen; der Ordner ist
+`750 greeter:greeter` und für den Keyring beschreibbar.
+
+### 8.5 WLAN-Regdomain
+`/etc/udev/rules.d/99-wifi-regdom.rules` (`iw reg set DE`) war
+wirkungslos: `wireless-regdb` fehlte, und die Intel-Karte ist ein
+self-managed wiphy (LAR). Jetzt: `wireless-regdb` in
+`shared/packages.list`, `Country=DE` in `etc/iwd/main.conf`, die udev-Regel
+entfällt. Die Karte zeigt bereits `country DE` (vom AP); die globale
+Regdomain greift nach dem nächsten Reboot.
+
+### 8.6 Anzeige-Kommentare
+`cfg/display.toml` behauptete, im Hybridbetrieb fahre die iGPU `eDP-2`.
+Tatsächlich ist `card1` (amdgpu) = `eDP-1` (verbunden) und `card0`
+(nvidia) = `eDP-2` (getrennt). Nur Kommentare und Überschriften getauscht;
+die beiden Output-Blöcke bleiben inhaltlich identisch.
+
+### 8.7 Beim Abgleich mit `kernel-tuning.nix` nachgezogen
+
+Zwei Punkte aus der NixOS-Vorlage fehlten noch:
+
+- **bpftune** (`services.bpftune.enable`): `bpftune-git` kommt aus chaotic
+  und wird deshalb erst in `extras_system` installiert (pacstrap kennt das
+  Repo noch nicht). Live getestet: `bpftune works fully`.
+- **`security.pam.loginLimits`**: `@audio - rtprio 99` in
+  `etc/security/limits.d/99-audio.conf`. `pam_limits.so` ist in
+  `system-auth`/`system-services` aktiv; das Limit greift ab dem nächsten
+  Login.
+
+### 8.8 Geänderte Dateien
+
+| Datei | Änderung |
+|---|---|
+| `hosts/nex/config/etc/pipewire/pipewire.conf.d/99-gc7-eq.conf` | `config = { filename = ... }` |
+| `hosts/nex/config/etc/wireplumber/wireplumber.conf.d/90-gc7.conf` | gültiges SPA-JSON (`actions = { update-props = { ... } }`) |
+| `shared/config/etc/udev/rules.d/60-tuning.rules` | `RUN` ruft `snd-hda-powersave` statt Shell-Einzeiler |
+| `shared/config/usr/local/bin/snd-hda-powersave` | neu: power_save-Umschaltung AC/Akku |
+| `shared/config/etc/iwd/main.conf` | neu: `Country=DE` |
+| `shared/config/etc/udev/rules.d/99-wifi-regdom.rules` | entfällt (wirkungslos) |
+| `shared/packages.list` | `wireless-regdb` |
+| `lib/extras.sh` (`extras_desktop`) | `usermod -d /var/lib/noctalia-greeter` für `greeter` |
+| `lib/extras.sh` (`extras_system`) | `bpftune-git` + `bpftune.service` |
+| `shared/config/etc/security/limits.d/99-audio.conf` | neu: `@audio - rtprio 99` |
+| `hosts/nex/home/.config/umbriel/cfg/display.toml` | eDP-Zuordnung in den Kommentaren korrigiert |

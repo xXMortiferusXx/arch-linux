@@ -145,19 +145,20 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 | `environment-*` (Session-Variablen) | `hosts/*/config/etc/environment` | ✅ (Cursor, Qt, radeonsi, Shader-Cache) |
 | `nvidia-prime` | `extras_nvidia`, `modprobe.d/nvidia.conf`, VRAM-Profile, `nvidia-offload` | ✅ (Laufzeit ungetestet) |
 | `legion` (Akku 60 %, iwlmvm, irqbalance, µcode) | Unit+Skript, modprobe, `amd-ucode` | ✅ |
+| `bpftune` (Netzwerk-Auto-Tuning) | `bpftune-git` (chaotic) + `bpftune.service` | ✅ |
 | `touchpad` | `touchpad-toggle` + udev | ✅ |
-| `audio-gc7` | PipeWire/WirePlumber/udev/`gc7-reset` | ✅ |
+| `audio-gc7` | PipeWire/WirePlumber/udev/`gc7-reset` | ✅ (pro-audio + param_eq live geprüft) |
 | `gaming` (steam, gamescope, udev, scripts, sunshine) | Pakete, 99-gaming.rules, `game-performance`, Steam-Wrapper, LizardByte | ✅ |
 | `cachyos-tools` (zink-run, dlss-swapper) | `usr/local/bin` | ✅ |
 | `ausweis`, `zink-run` | `ausweisapp`, `zink-run` | ✅ |
 | `users/*` (Gruppen) | `settings.env` + `EXTRA_GROUPS` | ✅ (nex: input/scanner/lp, lion: scanner/lp/i2c) |
 | `home/*` (Dotfiles, Noctalia-State, `.face`) | `hosts/*/home` + AccountsService-Icon | ✅ |
 | `polkit` (Wheel + passwordless Greeter-Sync) | `rules.d/49-wheel`, `50-noctalia-sync` | ✅ |
-| `noctalia-greeter` | greetd + `/var/lib/noctalia-greeter/greeter.toml`, `getty@tty1` maskiert | ✅ |
+| `noctalia-greeter` | greetd + `/var/lib/noctalia-greeter/greeter.toml`, `getty@tty1` maskiert, Greeter-Home korrigiert | ✅ |
 | `printing`/`sane` | cups(+browsed), sane, sane-airscan | ✅ |
 | `flatpak` (benny/lion) | Flatpak + Bazaar + Flathub | ✅ lion |
 | `btrfs`-Modul (Scrub/Balance) | Timer | ✅ |
-| `fstrim`, `chrony`, `resolved`, `iwd`, `avahi`, `fwupd`, `smartd`, `colord`, `irqbalance`, `upower`, `udisks2`, `bluetooth`, `logrotate`, `acpid` | systemd-Units | ✅ |
+| `fstrim`, `chrony`, `resolved`, `iwd`, `wireless-regdb`, `avahi`, `fwupd`, `smartd`, `colord`, `irqbalance`, `upower`, `udisks2`, `bluetooth`, `logrotate`, `acpid` | systemd-Units/Pakete | ✅ |
 | `firewall` | `nftables.conf` pro Host | ✅ (IPv4/IPv6, DHCP/mDNS/ICMP, SSH nur LAN bei lion, Sunshine bei nex) |
 
 ## 8. Bewusste Entscheidungen / Abweichungen

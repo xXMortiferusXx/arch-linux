@@ -246,6 +246,10 @@ extras_desktop() {
     arch-chroot "$TARGET" useradd --system -g greeter -d /var/lib/noctalia-greeter -s /usr/bin/nologin greeter
   fi
   arch-chroot "$TARGET" id greeter >/dev/null 2>&1 || die "greeter-User konnte nicht angelegt werden"
+  # Das greetd-Paket legt den User teils mit HOME=/ an. Dann versucht der
+  # Keyring im Greeter-Session "unable to create keyring dir:
+  # /.local/share/keyrings". Home auch bei bestehendem User korrigieren.
+  arch-chroot "$TARGET" usermod -d /var/lib/noctalia-greeter -s /usr/bin/nologin greeter
   install -d -o 0 -g 0 -m 755 "$TARGET/etc/greetd"
   cat > "$TARGET/etc/greetd/config.toml" <<'EOF'
 [terminal]
@@ -515,9 +519,15 @@ EOF
       || die "scx_loader.service fehlt (Paket scx-tools installiert?)"
   fi
 
+  # bpftune (NixOS: services.bpftune.enable) – nur chaotic, daher erst hier.
+  arch-chroot "$TARGET" pacman -S --needed --noconfirm bpftune-git \
+    || ui_warn "bpftune-git nicht verfuegbar – ohne Netzwerk-Auto-Tuning"
+  arch-chroot "$TARGET" systemctl enable bpftune.service \
+    || ui_warn "bpftune.service fehlt"
+
   # MS-Corefonts (nur chaotic)
   arch-chroot "$TARGET" pacman -S --needed --noconfirm ttf-ms-fonts \
     || ui_warn "ttf-ms-fonts nicht verfuegbar"
 
-  ui_ok "accounts-daemon, ananicy-cpp, scx_loader aktiv"
+  ui_ok "accounts-daemon, ananicy-cpp, scx_loader, bpftune aktiv"
 }

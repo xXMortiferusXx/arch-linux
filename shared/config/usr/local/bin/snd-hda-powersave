@@ -1,0 +1,40 @@
+#!/bin/sh
+# snd-hda-intel: power_save=0 bei Netzbetrieb (verhindert Crackling),
+# auf Batterie den vorherigen Wert wiederherstellen.
+# Aufruf aus 60-tuning.rules: init | ac | battery
+set -u
+
+state=/run/udev/snd-hda-intel-powersave
+param=/sys/module/snd_hda_intel/parameters/power_save
+
+[ -w "$param" ] || exit 0
+
+case "${1:-}" in
+  ac)
+    cur=$(cat "$param" 2>/dev/null || echo 1)
+    [ "$cur" = 0 ] || printf '%s\n' "$cur" > "$state"
+    printf '0\n' > "$param"
+    ;;
+  battery)
+    if [ -s "$state" ]; then
+      cat "$state" > "$param"
+    else
+      printf '1\n' > "$param"
+    fi
+    ;;
+  init)
+    # Nur beim ersten Soundkarten-Add und nur, wenn bereits Netzbetrieb.
+    [ -e "$state" ] && exit 0
+    for bat in /sys/class/power_supply/BAT*; do
+      [ -e "$bat/status" ] || continue
+      if [ "$(cat "$bat/status" 2>/dev/null)" != "Discharging" ]; then
+        cur=$(cat "$param" 2>/dev/null || echo 1)
+        printf '%s\n' "$cur" > "$state"
+        printf '0\n' > "$param"
+        break
+      fi
+    done
+    ;;
+esac
+
+exit 0

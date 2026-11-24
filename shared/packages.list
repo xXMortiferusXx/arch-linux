@@ -27,6 +27,7 @@ fwupd
 bluez
 bluez-utils
 iwd
+wireless-regdb
 modemmanager
 avahi
 chrony
