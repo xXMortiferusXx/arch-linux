@@ -190,7 +190,11 @@ Sober, Bedrock und PrismLauncher behielten ihre Logins von Anfang an.
 | Aufgeräumt | `.neu`-Reste, `/var/tmp/lion-restore`, Bedrock-Staging entfernt |
 
 Backup: `nex:/home/mortiferus/backups/lion-pc/2026-11-24` (3,4 GB, Manifest
-26.815 Dateien). Root 25 GB von 476 GB belegt.
+26.815 Dateien, Prüfsummen verifiziert). Root 25 GB von 476 GB belegt.
+
+Das Restore-Skript liegt kanonisch im Backup (`…/restore-home.sh`, braucht
+`home/`, `face.png`, `flatpak-apps.txt` daneben) und als versionierte Kopie
+unter `scripts/lion-home-restore.sh`.
 
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
