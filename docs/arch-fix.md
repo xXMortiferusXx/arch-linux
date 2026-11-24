@@ -341,6 +341,21 @@ funktioniert es. Nach einer frischen Installation mit normalisierten
 Rechten ist der Ordner `755 root:root`; dann geht `status` auch ohne
 `sudo` (siehe § 5, „Bewusste Abweichung“).
 
+### 4.5 `sudoers.d`: der letzte Treffer gewinnt
+`/etc/sudoers.d/wheel` enthält `%wheel ALL=(ALL:ALL) ALL` (Passwortpflicht).
+Eine NOPASSWD-Regel in `10-…` oder `99-…` wird **davor** gelesen und damit
+überschrieben – Ziffern sortieren vor Buchstaben, `wheel` kommt zuletzt.
+Deshalb heißt die nex-Regel `zzz-mortiferus-nopasswd`. Weitere Fallstricke:
+
+- Modus `0440 root:root` – sudo ignoriert falsch berechtigte Dateien.
+- Dateinamen ohne `.` – sudo überspringt in `sudoers.d` Dateien, die auf
+  `~` enden oder einen Punkt enthalten (Editor-/Paket-Backups).
+- Prüfen mit `sudo visudo -c` (parst auch die Drop-ins, aber **nicht** die
+  Reihenfolge) und `sudo -k; sudo -n true`.
+
+Im Installer: `NOPASSWD_SUDO=1` in `hosts/nex/settings.env` (lion: `0`),
+erzeugt in `lib/base.sh` direkt nach der `wheel`-Datei.
+
 ---
 
 ## 5. Installer-Fix: Rechte nach dem Overlay-Kopieren normalisieren
@@ -440,7 +455,9 @@ automatisch korrekt – `auto_sync = true` übernimmt das beim Login und bei
 | `hosts/nex/home/.config/umbriel/config.toml` | `autostart = ["noctalia"]`, NixOS-Kommentar ersetzt |
 | `hosts/lion-pc/home/.config/umbriel/config.toml` | dito |
 | `install.sh` | `umask 022` nach `set -Eeuo pipefail` |
-| `lib/base.sh` | Rechte-Normalisierung (`go-w`) nach den Overlay-`cp -a`-Aufrufen |
+| `lib/base.sh` | Rechte-Normalisierung (`go-w`) nach den Overlay-`cp -a`-Aufrufen; `NOPASSWD_SUDO=1` erzeugt `zzz-<user>-nopasswd` |
+| `hosts/nex/settings.env` | `NOPASSWD_SUDO=1` (sudo ohne Passwort) |
+| `hosts/lion-pc/settings.env` | `NOPASSWD_SUDO=0` (lion behält die Abfrage) |
 | `lib/extras.sh` (`extras_keyring`) | PAM-Reihenfolge via `awk`, „schon vorhanden“-Guard entfernt |
 | `lib/extras.sh` (`extras_desktop`) | `noctalia-greeter passwordless-sync enable "$username"` im Chroot |
 | `docs/STATUS.md` | Verweis auf diese Datei |

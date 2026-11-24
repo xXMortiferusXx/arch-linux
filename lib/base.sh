@@ -148,6 +148,20 @@ configure_base() {
   fi
   arch-chroot "$TARGET" bash -c 'echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/wheel && chmod 440 /etc/sudoers.d/wheel'
 
+  # Host ohne sudo-Passwortabfrage (nex). Der Dateiname muss NACH "wheel"
+  # sortieren: sudo wertet den letzten passenden Eintrag aus, sonst stellt
+  # "%wheel ALL=(ALL:ALL) ALL" die Passwortpflicht wieder her. Ein Praefix
+  # wie 10- oder 99- verliert immer, weil Ziffern vor Buchstaben sortieren.
+  if [ "${NOPASSWD_SUDO:-0}" = 1 ]; then
+    local sudoers="$TARGET/etc/sudoers.d/zzz-$username-nopasswd"
+    printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$username" > "$sudoers"
+    chown root:root "$sudoers"
+    chmod 0440 "$sudoers"
+    arch-chroot "$TARGET" visudo -c >/dev/null \
+      || die "sudoers-Regel fuer $username ist ungueltig"
+    ui_ok "sudo ohne Passwort fuer $username"
+  fi
+
   # Login-Shell auf fish (falls installiert)
   if arch-chroot "$TARGET" test -x /usr/bin/fish; then
     arch-chroot "$TARGET" usermod -s /usr/bin/fish "$username"

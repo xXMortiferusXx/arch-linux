@@ -84,6 +84,7 @@ Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 | `SSHD` | SSH-Server | 0 | 1 |
 | `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 |
 | `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp |
+| `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 |
 
 Der User bekommt immer `wheel,audio,video`; sysusers-Gruppen werden vor
 `useradd` angelegt (im Chroot existieren sie sonst nicht).
@@ -164,6 +165,9 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 - **Kein systemd-oomd** (hat auf NixOS Spiele gekillt); zram + swappiness 150
   übernehmen den Druck.
 - **Kein Flatpak auf nex** (nativ), Flatpak+Bazaar nur lion/benny.
+- **nex: sudo ohne Passwort** (`NOPASSWD_SUDO=1`): eigene Datei
+  `zzz-<user>-nopasswd` in `/etc/sudoers.d`, damit sie nach `wheel` gelesen
+  wird (sudo wertet den letzten Treffer aus). lion behält die Abfrage.
 - **Sunshine** aus dem offiziellen **LizardByte-Repo** (nicht AUR – das
   AUR-Bin-Paket bricht bei libicu-Updates).
 - **Kein `nix-check`/`nixos-update`**: auf Arch `arch-update` (chaotic, Tray +
