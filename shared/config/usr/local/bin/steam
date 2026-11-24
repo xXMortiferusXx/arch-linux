@@ -1,0 +1,4 @@
+#!/bin/sh
+# aus modules/programs/gaming/steam.nix: TZ fuer Steam/Proton nicht setzen
+unset TZ
+exec /usr/bin/steam "$@"

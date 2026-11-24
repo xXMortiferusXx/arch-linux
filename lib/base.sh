@@ -100,6 +100,13 @@ configure_base() {
       || arch-chroot "$TARGET" groupadd -r "$g"
   done
   local groups="wheel,audio,video"
+  # Host-Extra-Gruppen (nex: input/scanner/lp, lion: keine)
+  local eg
+  for eg in ${EXTRA_GROUPS:-}; do
+    arch-chroot "$TARGET" getent group "$eg" >/dev/null 2>&1 \
+      || arch-chroot "$TARGET" groupadd -r "$eg"
+    groups="$groups,$eg"
+  done
   if [ "${I2C:-0}" = 1 ]; then
     arch-chroot "$TARGET" getent group i2c >/dev/null 2>&1 \
       || arch-chroot "$TARGET" groupadd -r i2c

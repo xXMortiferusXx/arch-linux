@@ -1,0 +1,4 @@
+# aus modules/programs/gaming/udev.nix
+# Controller fuer libinput unsichtbar (verhindert Zeiger-/Cursor-Stoerung).
+# Spiele lesen sie weiterhin ueber evdev.
+ENV{ID_INPUT_JOYSTICK}=="?*", ENV{LIBINPUT_IGNORE_DEVICE}="1"
