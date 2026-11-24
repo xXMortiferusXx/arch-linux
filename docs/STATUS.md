@@ -175,8 +175,22 @@ gesichert:
 | Heroic | `~/.config/heroic` (auf NixOS nie vorhanden – nichts zu retten) |
 
 Sober, Bedrock und PrismLauncher behielten ihre Logins von Anfang an.
+
+**Abschluss 2026-11-24 (alles verifiziert):**
+
+| Punkt | Stand |
+|---|---|
+| Firefox | Profil `lion` aktiv, `places.sqlite` 28.388 History-Einträge, 11 MB Add-ons; Fix: `installs.ini` |
+| Bedrock | 5 Welten im Prefix (4 aus Backup + 1 neue), `msa`-Login sofort da |
+| Steam | `Lion_Jasper` eingeloggt, Bibliothek auf `/gaming/SteamLibrary` erkannt |
+| Vinegar | Roblox-Studio-Login im Prefix, gesichert |
+| Heroic | auf NixOS nie vorhanden, neu eingerichtet, `~/.config/heroic` im Backup |
+| arch-update | `arch-update-tray.service` enabled/active, Timer aktiv |
+| Flatpak | Scratch 3.10.1, Sober 1.8.0 |
+| Aufgeräumt | `.neu`-Reste, `/var/tmp/lion-restore`, Bedrock-Staging entfernt |
+
 Backup: `nex:/home/mortiferus/backups/lion-pc/2026-11-24` (3,4 GB, Manifest
-26.717 Dateien).
+26.815 Dateien). Root 25 GB von 476 GB belegt.
 
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
