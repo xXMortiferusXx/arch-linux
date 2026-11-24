@@ -722,22 +722,31 @@ visuellen Greeter/Noctalia-Login nötig.
 
 ## UEFI: dbx-Update bei vollem NVRAM (nex, Legion 5 82JU)
 
-`fwupdmgr update` scheiterte am 2026-11-24 mit:
+`fwupdmgr update` scheitert am 2026-11-24 mit:
 
 ```
 UEFI dbx kann derzeit nicht aktualisiert werden:
 Not enough efivarfs space, requested 30,7 KB and got 10,7 KB
 ```
 
-Der EFI-Variablenspeicher ist fast voll (altes `dbx` 20,7 KB, neues 30,7 KB,
-frei ~10 KB). Der Kernel verweigert den Schreibversuch vorsorglich
-("storage paranoia"). Lösung: Boot-Parameter **`efi_no_storage_paranoia`** –
-der Kernel überspringt die Schätzung, die Firmware entscheidet selbst. Da nur
-das Delta (~10 KB) gebraucht wird, passt es.
+**Ursache:** Der Block kommt von fwupd selbst, nicht vom Kernel. In
+`man fwupd.conf` steht `IgnoreEfivarsFreeSpace` (Default `false`); fwupd
+prüft also vor dem Schreiben, ob 30,7 KB (neues `dbx` 20260707) in die
+11 KB freien efivars passen.
 
-- Dauerhaft in `hosts/nex/kernel-cmdline` eingetragen (landet über
-  `lib/boot.sh` in `GRUB_CMDLINE_LINUX`).
-- Live: `/etc/default/grub` ergänzt, `grub-mkconfig -o /boot/grub/grub.cfg`.
-- Nach Reboot: `sudo fwupdmgr update` (dbx 20250902 → 20260707).
-- Kein Platzgewinn durch Löschen der Boot-Einträge: PXE-Einträge sind nur
-  ~200 Byte groß; die `*Default`-Variablen (db/KEK/PK) bleiben unangetastet.
+Die naheliegende Vermutung `efi_no_storage_paranoia` (Kernel-Schutz) war
+**falsch** – getestet am 2026-11-24, Parameter aktiv, Fehler unverändert.
+Parameter daher wieder entfernt (Live + `hosts/nex/kernel-cmdline`).
+
+**Entscheidung: Update auslassen.** `bootctl status` zeigt
+`Secure Boot: disabled`; die dbx-Liste wird nur bei aktivem Secure Boot
+ausgewertet und schützt vor widerrufenen, aber noch gültig signierten
+Bootloadern (BlackLotus-Klasse). Ohne Secure Boot hat sie keine Wirkung.
+Dazu ist das NVRAM zu 93 % voll – ein erzwungener Schreibversuch
+(`IgnoreEfivarsFreeSpace=true`) bringt nur Risiko ohne Nutzen.
+
+**Falls später doch gebraucht** (z. B. wenn Secure Boot aktiviert wird):
+`IgnoreEfivarsFreeSpace=true` in `/etc/fwupd/fwupd.conf`, dann
+`fwupdmgr update`. Nötigen Puffer schafft am ehesten ein BIOS-Update
+(Lenovo, räumt den Variablenspeicher neu auf) – für 82JU derzeit keins
+verfügbar.
