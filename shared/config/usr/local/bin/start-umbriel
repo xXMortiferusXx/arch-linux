@@ -1,0 +1,7 @@
+#!/bin/sh
+# Leise Login-Variante fuer den Greeter: Umbriel-/Startmeldungen wuerden
+# sonst kurz auf dem VT aufblitzen, bevor der Compositor uebernimmt.
+# /usr/local/bin steht bei greetd/systemd vor /usr/bin, deshalb wird dieser
+# Wrapper fuer "Exec=start-umbriel" aus umbriel.desktop verwendet.
+# Debugging: /usr/bin/start-umbriel direkt aufrufen.
+exec /usr/bin/start-umbriel "$@" >/dev/null 2>&1

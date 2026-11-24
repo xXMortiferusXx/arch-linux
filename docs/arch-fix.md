@@ -596,7 +596,9 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 `modules/home/apps/mimeapps.nix` gilt jetzt auch auf Arch, als
 `shared/home/.config/mimeapps.list` (für nex und lion):
 
-- PDF → `org.pwmt.zathura.desktop`
+- PDF → `org.pwmt.zathura-pdf-mupdf.desktop` (Backend `zathura-pdf-mupdf`
+  ist Pflicht, sonst startet Zathura leer). Der User-Override nutzt `%F`
+  statt `%U`, damit Thunar Dateipfade statt `file://`-URIs übergibt.
 - Bilder (PNG/BMP/JPEG/GIF/WebP/TIFF/SVG) → `org.gnome.Loupe.desktop`
 - Video → `mpv.desktop`
 - Audio → `io.bassi.Amberol.desktop`
@@ -610,7 +612,15 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 Live geprüft: `xdg-mime query default` liefert für alle Beispiele die
 richtigen Programme.
 
-### 8.10 Geänderte Dateien
+### 8.10 Leiser Umbriel-Login
+
+Beim Login über den Noctalia-Greeter blitzten Umbriel-Startmeldungen kurz
+auf dem VT auf. `/usr/local/bin/start-umbriel` (vor `/usr/bin` im
+greetd-PATH) startet jetzt `/usr/bin/start-umbriel` mit
+`>/dev/null 2>&1`; das Paket-Skript bleibt unangetastet. Zum Debuggen
+direkt `/usr/bin/start-umbriel` aufrufen.
+
+### 8.11 Geänderte Dateien
 
 | Datei | Änderung |
 |---|---|
@@ -636,6 +646,8 @@ richtigen Programme.
 | `hosts/lion-pc/home/.../settings.toml.baseline` | `nix-monitor` und Discord-Nix-Pfad entfernt |
 | `hosts/lion-pc/home/.../graphical-session.target.wants/io.github.kolunmi.Bazaar.service` | Bazaar-Daemon beim Login |
 | `shared/home/.config/systemd/user/obex.service.d/10-auto-accept.conf` | OBEX Auto-Accept |
-| `shared/packages.list` | `mpv`, `amberol`, `bluez-obex` |
+| `shared/packages.list` | `mpv`, `amberol`, `bluez-obex`, `zathura-pdf-mupdf` |
 | `shared/home/.config/mimeapps.list` | NixOS-MIME-Defaults (zathura/Loupe/mpv/Amberol/nvim/Thunderbird) |
+| `shared/home/.local/share/applications/org.pwmt.zathura-pdf-mupdf.desktop` | `%F`-Override für Thunar |
+| `shared/config/usr/local/bin/start-umbriel` | leiser Login-Wrapper (stdout/stderr → `/dev/null`) |
 | `hosts/nex/home/.config/umbriel/cfg/display.toml` | eDP-Zuordnung in den Kommentaren korrigiert |
