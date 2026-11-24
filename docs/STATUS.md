@@ -85,7 +85,7 @@ Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 | `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 |
 | `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp |
 | `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 |
-| `BEDROCK` | Minecraft Bedrock (`mcpelauncher`, chaotic) | 0 | 1 |
+| `BEDROCK` | BedrockOnLinux-AppImage (Windows-Client, Xbox-Friends/Einladungen) | 0 | 1 |
 
 Der User bekommt immer `wheel,audio,video`; sysusers-Gruppen werden vor
 `useradd` angelegt (im Chroot existieren sie sonst nicht).
@@ -251,7 +251,7 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
 1. **Hardware-Test auf nex**: NVIDIA/PRIME, Dynamic Boost, GC7 (ChatMix/EQ),
    Legion-Akku, Touchpad, Greeter-Sync (greift erst nach dem ersten Login).
 2. **Hardware-Test lion-pc** (AMD/RADV, DDC-CI, scx_lavd, Flatpak/Bazaar,
-   Bazaar-Auto-Update, Flathub-Key-Refresh).
+   Bazaar-Auto-Update, Flathub-Key-Refresh, BedrockOnLinux/Xbox-Friends).
 3. **benny**: Entscheidung offen; Profil noch nicht angelegt (s. o.).
 4. **Nix-Skripte**: `audio-rate`, `mic-check` (nicht nötig, Werte stehen fest),
    `nvidia-track`, `boosteroid-track` – bei Bedarf neu bauen.

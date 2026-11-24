@@ -331,15 +331,70 @@ extras_gaming() {
     heroic-games-launcher-bin protonplus lsfg-vk-git \
     || die "Gaming-Pakete (chaotic) nicht installierbar"
 
-  # NixOS-Lion nutzte BedrockOnLinux (Wine-Flake). Dafuer gibt es kein
-  # Arch-Paket; mcpelauncher ist der native Ersatz fuer Minecraft Bedrock.
+  # NixOS-Lion nutzte BedrockOnLinux (Windows-Client, echte Xbox-Friends/
+  # Einladungen). mcpelauncher waere die Android-Runtime, kann aber keine
+  # Xbox-Live-Einladungen empfangen -> bewusst nicht verwenden.
   if [ "${BEDROCK:-0}" = 1 ]; then
-    arch-chroot "$TARGET" pacman -S --needed --noconfirm \
-      mcpelauncher-linux-git mcpelauncher-ui-git \
-      || ui_warn "mcpelauncher (Bedrock) nicht verfuegbar"
+    extras_bedrock
   fi
 
-  ui_ok "Heroic, ProtonPlus, lsfg-vk (ggf. Bedrock/mcpelauncher) installiert"
+  ui_ok "Heroic, ProtonPlus, lsfg-vk (ggf. BedrockOnLinux) installiert"
+}
+
+# BedrockOnLinux: Windows-Bedrock (GDK) via Wine, mit echten Xbox-Friends/
+# Einladungen/Realms. Offizielles AppImage (kein Arch-Paket), SHA256-gepinnt.
+# v2.3.1, SHA256 aus BedrockOnLinux-2.3.1-SHA256SUMS (offizielles Release).
+# Das AppImage aktualisiert sich nach der Installation selbst.
+extras_bedrock() {
+  ui_step "Minecraft Bedrock (BedrockOnLinux)"
+
+  local ver="2.3.1"
+  local sha="15a4a978b711f268f34c5761c68b93e852701c133586a8f188748b6e8972fedb"
+  local url="https://github.com/Wyze3306/BedrockOnLinux/releases/download/v${ver}/BedrockOnLinux-${ver}-x86_64.AppImage"
+  local username="${USERNAME:-mortiferus}"
+  local uid gid
+  uid="$(arch-chroot "$TARGET" id -u "$username")"
+  gid="$(arch-chroot "$TARGET" id -g "$username")"
+
+  install -d -m 1777 "$TARGET/var/tmp"
+  local tmp="$TARGET/var/tmp/BedrockOnLinux-${ver}.AppImage"
+
+  if ! curl -fL --retry 3 --retry-delay 2 --connect-timeout 15 --max-time 900 \
+       -o "$tmp" "$url"; then
+    ui_warn "BedrockOnLinux-Download fehlgeschlagen – manuell: $url"
+    rm -f "$tmp"
+    return 0
+  fi
+  if ! printf '%s  %s\n' "$sha" "$tmp" | sha256sum -c - >/dev/null 2>&1; then
+    ui_warn "BedrockOnLinux: SHA256 falsch – Download verworfen"
+    rm -f "$tmp"
+    return 0
+  fi
+
+  install -d -o "$uid" -g "$gid" -m 755 "$TARGET/home/$username/Applications"
+  install -o "$uid" -g "$gid" -m 755 "$tmp" \
+    "$TARGET/home/$username/Applications/BedrockOnLinux.AppImage"
+  rm -f "$tmp"
+
+  local desktop_dir="$TARGET/home/$username/.local/share/applications"
+  install -d -o "$uid" -g "$gid" -m 755 "$desktop_dir"
+  cat > "$desktop_dir/bedrock-on-linux.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Minecraft Bedrock
+GenericName=BedrockOnLinux
+Comment=Minecraft Bedrock (Windows GDK) mit Xbox-Friends/Einladungen
+Exec=/home/$username/Applications/BedrockOnLinux.AppImage gui
+Icon=applications-games
+Terminal=false
+Categories=Game;ActionGame;
+Keywords=minecraft;bedrock;
+StartupNotify=true
+StartupWMClass=BedrockOnLinux
+EOF
+  chown "$uid:$gid" "$desktop_dir/bedrock-on-linux.desktop"
+
+  ui_ok "BedrockOnLinux $ver installiert (Xbox-Friends/Einladungen)"
 }
 
 # Sunshine (Game-Streaming-Host, nex-only) aus dem offiziellen LizardByte-Repo.

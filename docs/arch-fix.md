@@ -561,7 +561,7 @@ Zwei Punkte aus der NixOS-Vorlage fehlten noch:
   `system-auth`/`system-services` aktiv; das Limit greift ab dem nächsten
   Login.
 
-### 8.8 Lion-Härtung (Bazaar/Flatpak/OBEX/mpv/Tray)
+### 8.8 Lion-Härtung (Bazaar/Flatpak/OBEX/mpv/Bedrock/Tray)
 
 Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 
@@ -575,13 +575,18 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 - **OBEX**: `bluez-obex` + Drop-in (`--auto-accept`,
   `~/Downloads/Bluetooth`), gestartet über `graphical-session.target`.
 - **`mpv`**: fehlte in der gemeinsamen Paketliste (NixOS-Lion hatte es).
-- **Bedrock**: NixOS-Lion nutzte `BedrockOnLinux` (Wine-Flake); dafür gibt
-  es kein Arch-Paket. `BEDROCK=1` (nur lion) installiert stattdessen
-  `mcpelauncher-linux-git` + `mcpelauncher-ui-git` aus chaotic.
-  `mcpelauncher` nutzt die Android-/Bedrock-Edition (kein Wine); der
-  Microsoft-Account funktioniert normal. Lokale Welten aus der alten
-  Wine-Installation lassen sich als `.mcworld` exportieren und im
-  mcpelauncher-UI importieren; Realms und Server bleiben unverändert.
+- **Bedrock**: NixOS-Lion nutzte `BedrockOnLinux` (Windows-GDK-Client via
+  Wine) mit echten Xbox-Friends und Einladungen. Auf Arch gibt es kein
+  Paket, aber ein offizielles AppImage. `BEDROCK=1` (nur lion) lädt v2.3.1
+  SHA256-geprüft nach `~/Applications/BedrockOnLinux.AppImage` und legt
+  einen Desktop-Eintrag an. `mcpelauncher` wird bewusst **nicht** verwendet:
+  dessen Doku bestätigt, dass es keine Xbox-Live-Einladungen empfangen kann
+  und Friend-Joins unzuverlässig sind.
+  Erststart lädt das Spiel über den eigenen Microsoft-Account; Friends,
+  Einladungen, Server und Realms funktionieren wie unter Windows. Alte
+  Welten liegen unter
+  `~/.local/share/bedrock-on-linux/compatdata/pfx/drive_c/users/steamuser/AppData/Roaming/Minecraft Bedrock`
+  und müssen vor einem Wipe gesichert werden.
 - **arch-update-Tray**: eigener User-Service, der auf Noctalias
   SNI-Watcher wartet; `ShowTrayWhenRelevant` entfernt, damit das Icon
   dauerhaft sichtbar ist.
@@ -607,7 +612,7 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 | `shared/config/usr/local/bin/flatpak-key-refresh` | GPG-Key-Refresh |
 | `shared/config/etc/systemd/system/flatpak-key-refresh.{service,timer}` | täglicher Key-Refresh |
 | `lib/extras.sh` (`extras_flatpak`) | lokale `.flatpakrepo`, `dconf update`, Key-Timer |
-| `lib/extras.sh` (`extras_gaming`) | `mcpelauncher` für `BEDROCK=1` |
+| `lib/extras.sh` (`extras_gaming`) | `BedrockOnLinux`-AppImage (v2.3.1, SHA256) für `BEDROCK=1` |
 | `hosts/lion-pc/settings.env` | `BEDROCK=1` |
 | `hosts/lion-pc/home/.../settings.toml.baseline` | `nix-monitor` und Discord-Nix-Pfad entfernt |
 | `hosts/lion-pc/home/.../graphical-session.target.wants/io.github.kolunmi.Bazaar.service` | Bazaar-Daemon beim Login |
