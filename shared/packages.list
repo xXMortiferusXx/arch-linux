@@ -63,6 +63,9 @@ usbutils
 mesa-demos
 ntfs-3g
 cpupower
+nftables
+archlinux-contrib
+pacman-contrib
 cifs-utils
 samba
 gvfs

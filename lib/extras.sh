@@ -369,6 +369,12 @@ extras_services() {
       || ui_warn "$unit nicht aktivierbar"
   done
 
+  # Firewall (nftables) nur wenn der Host eine Regelsammlung mitbringt
+  if [ -f "$TARGET/etc/nftables.conf" ]; then
+    arch-chroot "$TARGET" systemctl enable nftables.service >/dev/null 2>&1 \
+      || ui_warn "nftables.service nicht aktivierbar"
+  fi
+
   if [ "${LAPTOP:-1}" = 1 ]; then
     arch-chroot "$TARGET" systemctl enable legion-conservation-mode.service >/dev/null 2>&1 \
       || ui_warn "legion-conservation-mode.service nicht aktivierbar"

@@ -28,7 +28,7 @@ pacstrap_base() {
   ui_ok "pacstrap: ${#pkgs[@]} Host-Pakete + Basis"
 }
 
-# Parallele Downloads (Arch-Default: 5).
+# pacman-Optik + parallele Downloads (Arch-Default: 5, keine Farben).
 set_parallel_downloads() {
   local conf="$1"
   [ -f "$conf" ] || return 0
@@ -37,6 +37,14 @@ set_parallel_downloads() {
   else
     sed -i '/^\[options\]/a ParallelDownloads = 10' "$conf"
   fi
+  # Farbige Ausgabe + Candy-Fortschrittsbalken + Tabellen bei Paketlisten
+  for opt in Color ILoveCandy VerbosePkgLists; do
+    if grep -qE "^#?${opt}$" "$conf"; then
+      sed -i "s/^#\?${opt}$/${opt}/" "$conf"
+    elif ! grep -qxF "${opt}" "$conf"; then
+      sed -i "/^\[options\]/a ${opt}" "$conf"
+    fi
+  done
 }
 
 # multilib ist Pflicht fuer Steam (32-bit) und lib32-Pakete.
