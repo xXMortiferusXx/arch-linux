@@ -578,6 +578,10 @@ Beim Abgleich mit dem NixOS-Lion-Profil zusätzlich geschlossen:
 - **Bedrock**: NixOS-Lion nutzte `BedrockOnLinux` (Wine-Flake); dafür gibt
   es kein Arch-Paket. `BEDROCK=1` (nur lion) installiert stattdessen
   `mcpelauncher-linux-git` + `mcpelauncher-ui-git` aus chaotic.
+  `mcpelauncher` nutzt die Android-/Bedrock-Edition (kein Wine); der
+  Microsoft-Account funktioniert normal. Lokale Welten aus der alten
+  Wine-Installation lassen sich als `.mcworld` exportieren und im
+  mcpelauncher-UI importieren; Realms und Server bleiben unverändert.
 - **arch-update-Tray**: eigener User-Service, der auf Noctalias
   SNI-Watcher wartet; `ShowTrayWhenRelevant` entfernt, damit das Icon
   dauerhaft sichtbar ist.
