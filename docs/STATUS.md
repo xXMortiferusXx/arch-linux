@@ -160,10 +160,21 @@ nachinstalliert.
 
 Erster Restore ließ **Steam** und **Vinegar/Roblox Studio** einen neuen Login
 verlangen: Die Trim-Regel hatte `Steam/config/htmlcache` (dort liegt
-`steamLoginSecure`) und `vinegar/prefixes` erwischt. Nachträglich von der alten
-Patriot-SSD (USB) kopiert; seither sind beide Logins im Backup enthalten
-(`home/.local/share/Steam/config`, `home/.local/share/vinegar/{prefixes,appdata}`).
+`steamLoginSecure`) und `vinegar/prefixes` erwischt. Auch von der alten Patriot-SSD
+(USB) ließ sich der Steam-Login nicht übernehmen: Der Blob in
+`Steam/local.vdf` (`ConnectCache`) ist an die alte Installation gebunden und
+wurde verworfen. Nach je einem frischen Login sind Steam und Vinegar jetzt
+gesichert:
+
+| App | Datei(en) |
+|---|---|
+| Steam | `Steam/local.vdf` (ConnectCache-Blob), `.steam/steam.token`, `Steam/config/` |
+| Vinegar | `vinegar/prefixes/studio`, `vinegar/appdata`, `settings.reg` |
+| Heroic | `~/.config/heroic` (auf NixOS nie vorhanden – nichts zu retten) |
+
 Sober, Bedrock und PrismLauncher behielten ihre Logins von Anfang an.
+Backup: `nex:/home/mortiferus/backups/lion-pc/2026-11-24` (3,4 GB, Manifest
+26.717 Dateien).
 
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
