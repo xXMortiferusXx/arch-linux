@@ -1,0 +1,15 @@
+# Session-Variablen (aus modules/desktop/desktop.nix, environment-common.nix,
+# environment-lion.nix und hardware/amdgpu.nix)
+XCURSOR_THEME=Bibata-Modern-Ice
+XCURSOR_SIZE=24
+QT_QPA_PLATFORMTHEME=qt6ct
+TRACKER_USE_RUNNER=0
+TZ=Europe/Berlin
+EDITOR=nvim
+ELECTRON_OZONE_PLATFORM_HINT=auto
+
+# AMD GCN: VA-API/VDPAU ueber radeonsi
+LIBVA_DRIVER_NAME=radeonsi
+VDPAU_DRIVER=radeonsi
+# wlroots darf auf Software-Rendering zurueckfallen (VM/Remote)
+WLR_RENDERER_ALLOW_SOFTWARE=1

@@ -183,18 +183,7 @@ EOF
 # NVIDIA (offene Module) + PRIME-Offload + Dynamic Boost.
 extras_nvidia() {
   ui_step "NVIDIA/PRIME"
-  # Env fuer die ganze Session (iGPU treibt das Display, dGPU per prime-run).
-  cat > "$TARGET/etc/environment" <<'EOF'
-# Compositor/Display laeuft auf der iGPU (radeonsi)
-LIBVA_DRIVER_NAME=radeonsi
-VDPAU_DRIVER=radeonsi
-# VRR nur fuer prime-run-Spiele
-__GL_VRR_ALLOWED=1
-# wlroots darf auf Software-Rendering zurueckfallen (VM, Remote, kein GPU-Zugriff).
-# Auf echter Hardware wird weiter die GPU benutzt.
-WLR_RENDERER_ALLOW_SOFTWARE=1
-EOF
-
+  # Session-Variablen stehen in hosts/<host>/config/etc/environment
   # VRAM-Heap-Fix fuer Electron-/GPU-Apps (GLVidHeapReuseRatio=0)
   install -d "$TARGET/etc/nvidia/nvidia-application-profiles-rc.d"
   cat > "$TARGET/etc/nvidia/nvidia-application-profiles-rc.d/50-vram-fix.json" <<'EOF'
@@ -235,14 +224,9 @@ EOF
 # der Paketliste, hier nur die Umgebung fuer VA-API/VDPAU.
 extras_graphics_amd() {
   ui_step "Grafik (AMD/radeonsi)"
-  cat > "$TARGET/etc/environment" <<'EOF'
-# AMD GCN: VA-API/VDPAU ueber radeonsi
-LIBVA_DRIVER_NAME=radeonsi
-VDPAU_DRIVER=radeonsi
-# wlroots darf auf Software-Rendering zurueckfallen (VM/Remote)
-WLR_RENDERER_ALLOW_SOFTWARE=1
-EOF
-  ui_ok "AMD: radeonsi-Env gesetzt"
+  # Session-Variablen (radeonsi, Cursor, Qt-Theme) stehen in
+  # hosts/<host>/config/etc/environment; Mesa/RADV kommt aus shared.
+  ui_ok "AMD: Mesa/RADV aus Paketliste, Env aus Host-Config"
 }
 
 # Chaotic-AUR + Umbriel/Noctalia/Greeter + greetd.
