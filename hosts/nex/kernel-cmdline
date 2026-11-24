@@ -1,1 +1,2 @@
 transparent_hugepage=madvise amd_pstate=active amdgpu.dcfeaturemask=0x0 amdgpu.dcdebugmask=0x2 usbcore.old_scheme_first=1 vt.global_cursor_default=0
+efi_no_storage_paranoia

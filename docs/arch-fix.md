@@ -719,3 +719,25 @@ Beim Test gefundene und behobene Installer-Reste:
 
 Der echte Lion-Test bleibt für DDC/CI, AMD-GPU, Bedrock-Einladungen und den
 visuellen Greeter/Noctalia-Login nötig.
+
+## UEFI: dbx-Update bei vollem NVRAM (nex, Legion 5 82JU)
+
+`fwupdmgr update` scheiterte am 2026-11-24 mit:
+
+```
+UEFI dbx kann derzeit nicht aktualisiert werden:
+Not enough efivarfs space, requested 30,7 KB and got 10,7 KB
+```
+
+Der EFI-Variablenspeicher ist fast voll (altes `dbx` 20,7 KB, neues 30,7 KB,
+frei ~10 KB). Der Kernel verweigert den Schreibversuch vorsorglich
+("storage paranoia"). Lösung: Boot-Parameter **`efi_no_storage_paranoia`** –
+der Kernel überspringt die Schätzung, die Firmware entscheidet selbst. Da nur
+das Delta (~10 KB) gebraucht wird, passt es.
+
+- Dauerhaft in `hosts/nex/kernel-cmdline` eingetragen (landet über
+  `lib/boot.sh` in `GRUB_CMDLINE_LINUX`).
+- Live: `/etc/default/grub` ergänzt, `grub-mkconfig -o /boot/grub/grub.cfg`.
+- Nach Reboot: `sudo fwupdmgr update` (dbx 20250902 → 20260707).
+- Kein Platzgewinn durch Löschen der Boot-Einträge: PXE-Einträge sind nur
+  ~200 Byte groß; die `*Default`-Variablen (db/KEK/PK) bleiben unangetastet.
