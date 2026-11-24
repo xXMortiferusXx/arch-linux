@@ -16,6 +16,7 @@ Ungetestet ist nur, was echte Hardware braucht (NVIDIA/PRIME, Desktop-Laufzeit).
 - `docs/STATUS.md` – Übergabe: Aufbau, Host-Features, Portierungsmatrix,
   Fallstricke, Test-Workflow, offene Punkte
 - `docs/installer.md` – Installer-Entscheidungen und Ablauf
+- `umbriel.md` – Arch-Umbriel-Tracking (Version, Config, Upstream-Checks)
 
 ## Struktur
 
