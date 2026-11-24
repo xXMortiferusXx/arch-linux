@@ -156,7 +156,11 @@ Kingston SUV400 als `/gaming` (`GamingDrive`, UUID `82cd6e39-…`) erhalten.
 Installation mit `--disk /dev/nvme0n1 --gaming /dev/sda1`; danach Restore vor
 dem ersten Login: 13.274 Dateien, `umbriel config validate` → `config: ok`,
 0 tote Symlinks. WLAN war bereits eingerichtet, Flatpak-Apps (Scratch, Sober)
-nachinstalliert.
+nachinstalliert. Offen nach dem Restore: **Steam** und **Vinegar/Roblox Studio**
+verlangten neuen Login, weil die Trim-Regel `Steam/ssfn*` und
+`vinegar/prefixes` (Login-Token) mit entfernt hatte; Sober, Bedrock und
+PrismLauncher behielten ihre Logins. Künftig beim Backup mitnehmen:
+`Steam/ssfn*`, `vinegar/prefixes/*/drive_c/users/*/AppData/Local/Roblox`.
 
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
