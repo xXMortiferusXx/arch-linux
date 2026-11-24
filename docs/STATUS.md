@@ -140,14 +140,23 @@ PrismLauncher-Instanzen, Keyrings, Bilder/Downloads). Enthalten sind
 Wiederherstellen nach der Installation:
 
 ```bash
-rsync -aH /home/mortiferus/backups/lion-pc/2026-11-24/ lion@lion:/tmp/lion-restore/
-ssh -t lion 'sudo /tmp/lion-restore/restore-home.sh --flatpak'
+# frisches Arch hat kein rsync -> tar ueber SSH
+tar -C /home/mortiferus/backups/lion-pc/2026-11-24 -cf - . \
+  | ssh lion 'mkdir -p /var/tmp/lion-restore && tar -C /var/tmp/lion-restore -xpf -'
+ssh lion 'TARGET_USER=lion bash /var/tmp/lion-restore/restore-home.sh'
 ```
 
 Das Skript korrigiert die NixOS-Eigenheiten für Arch: Umbriel-`autostart`,
 Firefox-Profil nach `~/.mozilla/firefox` samt `profiles.ini`, Profilbild,
-tote `/nix/store`-Symlinks, Bedrock-Welten. Getestet mit Probelauf nach
-`/var/tmp` (13.270 Dateien, 0 tote Symlinks).
+tote `/nix/store`-Symlinks, Bedrock-Welten. Es braucht kein rsync (tar reicht)
+und läuft als `lion`, solange nichts root gehört.
+
+**Umbau 2026-11-24:** Patriot P210 256 GB (SATA) gegen NVMe 476 GB getauscht,
+Kingston SUV400 als `/gaming` (`GamingDrive`, UUID `82cd6e39-…`) erhalten.
+Installation mit `--disk /dev/nvme0n1 --gaming /dev/sda1`; danach Restore vor
+dem ersten Login: 13.274 Dateien, `umbriel config validate` → `config: ok`,
+0 tote Symlinks. WLAN war bereits eingerichtet, Flatpak-Apps (Scratch, Sober)
+nachinstalliert.
 
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).

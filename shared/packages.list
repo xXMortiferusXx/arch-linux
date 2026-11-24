@@ -139,6 +139,7 @@ thunar
 unzip
 unrar
 7zip
+rsync
 kitty-terminfo
 # --- Schriften ------------------------------------------------------------
 ttf-dejavu
