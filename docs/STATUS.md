@@ -229,6 +229,15 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 # ISO booten (Testumgebung)
 ./test/test-installer.sh iso [iso-datei]
 
+# Headless + seriell + Lion-Firewall-kompatibles QEMU-Netz:
+QEMU_DISPLAY=none QEMU_VGA=virtio LAN_NET=1 WORK=/var/tmp/arch-test \
+  SERIAL_SOCK=/tmp/opencode/serial.sock \
+  ./test/test-installer.sh iso
+# installiertes System:
+QEMU_DISPLAY=none QEMU_VGA=virtio LAN_NET=1 WORK=/var/tmp/arch-test \
+  SERIAL_SOCK=/tmp/opencode/serial-boot.sock \
+  ./test/test-installer.sh boot
+
 # automatisiert über die serielle Konsole:
 python3 test/serial-console.py /tmp/opencode/serial.sock \
         /tmp/opencode/serial.log /tmp/opencode/serial.cmd &
