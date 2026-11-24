@@ -58,6 +58,54 @@ Arch-Unterschiede:
 - Viele Layout-/Render-/Fokus-/Output-Fixes (Titlebar-Rundungen, maximierte
   Floats, Tab-Gruppen, Touch/Pad, Frame-Retries).
 
+## Effekte: `appearance` vs. `[effects]`
+
+Nicht verwechseln:
+
+- **`appearance`** (aktiv): `blur`, `shadow`, `corner_radius = 12`,
+  `drag_opacity`, `animation` (popin/fade/snappy). Das ist der normale
+  „moderne“ Look und läuft bereits.
+- **`[effects]`** (aus): separate GLSL-Engine für Border-/Window-/Screen-/
+  Cursor-Effekte. `umbriel effects` zeigt aktuell **keine Presets/Pools**;
+  `effects.border/window/screen/cursor` sind leer, `effects.border_unfocused`
+  ist `false`.
+
+Mitgelieferte Presets (nur nach Include + Selektor aktiv):
+
+| Kind | Presets |
+|---|---|
+| Border | `pulse` (Palette + Light), `audio` (Spektrum) |
+| Cursor | `glow`, `trail`, `trail-path` |
+| Screen | `vignette` |
+| Window | `scanlines` |
+| Animation | `reveal`, `squash`, `workspace_wipe` |
+
+**Empfehlung:** standardmäßig aus lassen. Der einzige subtile Kandidat ist
+**`pulse`** als Border-Effekt **nur für das fokussierte Fenster**
+(`border_effect_unfocused` bleibt `false`), optional **`glow`** für den Cursor.
+`vignette` (Screen) deaktiviert Direct-Scanout und kann Spiele/Video stören;
+`scanlines` ist retro; `audio` ist ein Gimmick mit Spektrum-Kosten.
+
+Getesteter Opt-in-Snippet (nicht aktiv; in `config.toml` ergänzen):
+
+```toml
+[include]
+files = [
+  # ... bestehende cfg/*.toml ...
+  "/usr/share/umbriel/effects/border/pulse/effect.toml",
+  # "/usr/share/umbriel/effects/cursor/glow/effect.toml",
+]
+
+[effects]
+border = "pulse"
+# cursor = "glow"
+```
+
+Danach `umbriel config validate` (muss `config: ok` liefern) und der
+Compositor lädt neu. Rollback: die beiden Include-Zeilen und `[effects]`
+entfernen. `border_effect_unfocused = true` würde auch alle unfokussierten
+Fenster leuchten lassen – bewusst nicht gesetzt.
+
 ## Feature-Entscheidung
 
 **Nichts muss migriert oder konfiguriert werden.** Die aktuelle Config ist
@@ -68,7 +116,7 @@ gültig und bleibt bewusst minimal.
 | `global_shortcuts` | Nichts tun – Portal/Freigabe läuft automatisch; Apps können Shortcuts registrieren |
 | Scratchpad Show/Hide/Pin/Stay-up | Optional; wir nutzen bereits `Mod+Tab` + `scratchpad-window-show-next/previous` |
 | `spawn-floating` | Optional; z. B. für ein Floating-Terminal, aktuell nicht gebunden |
-| `border_effect_unfocused` | Nicht relevant – wir nutzen keine `[effects]` |
+| `border_effect_unfocused` | Nur mit Border-Effect; bleibt `false` (nur fokussiertes Fenster) |
 | Config-Diagnostik/unknown-match-Fix | Automatisch, keine Aktion |
 
 Wenn Scratchpads künftig intensiver genutzt werden, sind die neuen
