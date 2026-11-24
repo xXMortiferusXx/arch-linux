@@ -5,6 +5,7 @@
 # (Umbriel, MIT); bei Upstream-Aenderungen neu kopieren.
 [effects]
 border = "pulse-bright"
+cursor = "glow-subtle"
 
 [effects.preset.pulse-bright]
 kind = "border"
@@ -17,3 +18,11 @@ speed = 1.0
 spread = 100
 intensity = 3.0
 threshold = 0.4
+
+# Dezenter Cursor-Halo (kleiner Radius, schwacher Halo, ruhiges Atmen).
+# Shader ist eine lokale, abgeschwaechte Variante des gebuendelten glow.
+[effects.preset.glow-subtle]
+kind = "cursor"
+shader = "effects/glow-subtle/shader.glsl"
+palette = false
+radius = 80
