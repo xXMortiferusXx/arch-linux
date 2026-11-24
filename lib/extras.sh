@@ -302,6 +302,11 @@ EOF
 
   arch-chroot "$TARGET" systemctl enable greetd
   arch-chroot "$TARGET" systemctl set-default graphical.target
+
+  # Wie NixOS: kein Getty auf tty1. Sonst zieht systemd beim Session-Wechsel
+  # den Login-Prompt auf tty1 hoch und die Textkonsole blitzt kurz auf.
+  arch-chroot "$TARGET" systemctl disable getty@tty1.service >/dev/null 2>&1 || true
+  arch-chroot "$TARGET" systemctl mask getty@tty1.service autovt@tty1.service >/dev/null 2>&1 || true
   ui_ok "Desktop: greetd + Noctalia-Greeter (de, ohne Uhr)"
 }
 
