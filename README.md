@@ -11,6 +11,12 @@ Der Installer laeuft in QEMU durch: Partitionierung, btrfs-Subvolumes, pacstrap,
 GRUB (UEFI) mit Snapshot-Booteintraegen, Host- und Home-Configs, greetd.
 Ungetestet ist nur, was echte Hardware braucht (NVIDIA/PRIME, Desktop-Laufzeit).
 
+## Dokumentation
+
+- `docs/STATUS.md` – Übergabe: Aufbau, Host-Features, Portierungsmatrix,
+  Fallstricke, Test-Workflow, offene Punkte
+- `docs/installer.md` – Installer-Entscheidungen und Ablauf
+
 ## Struktur
 
 ```
