@@ -234,7 +234,7 @@ QEMU_DISPLAY=none QEMU_VGA=virtio LAN_NET=1 WORK=/var/tmp/arch-test \
   SERIAL_SOCK=/tmp/opencode/serial.sock \
   ./test/test-installer.sh iso
 # installiertes System:
-QEMU_DISPLAY=none QEMU_VGA=virtio LAN_NET=1 WORK=/var/tmp/arch-test \
+QEMU_DISPLAY=none QEMU_VGA=virtio LAN_NET=1 KEEP_OVMF=1 WORK=/var/tmp/arch-test \
   SERIAL_SOCK=/tmp/opencode/serial-boot.sock \
   ./test/test-installer.sh boot
 

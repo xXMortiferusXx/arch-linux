@@ -23,6 +23,10 @@ SERIAL_SOCK="${SERIAL_SOCK:-}"
 # LAN_NET=1: QEMU-User-Netz im 192.168.50.0/24, damit die Host-Firewall
 # (SSH nur aus LAN) den Hostfwd durchlaesst.
 LAN_NET="${LAN_NET:-0}"
+# KEEP_OVMF=1: NVRAM (UEFI-Booteintrag) beim Boot des installierten Systems
+# behalten. Ohne das wird OVMF_VARS frisch kopiert und der GRUB-Eintrag geht
+# verloren.
+KEEP_OVMF="${KEEP_OVMF:-0}"
 
 die() { echo "FEHLER: $*" >&2; exit 1; }
 
@@ -160,9 +164,11 @@ cmd_boot() {
   fi
   if [ -n "$ovmf_code" ] && [ -f "$ovmf_vars_src" ]; then
     local ovmf_vars="$WORK/OVMF_VARS.fd"
-    rm -f "$ovmf_vars"
-    cp "$ovmf_vars_src" "$ovmf_vars"
-    chmod u+w "$ovmf_vars"
+    if [ "${KEEP_OVMF:-0}" != 1 ] || [ ! -f "$ovmf_vars" ]; then
+      rm -f "$ovmf_vars"
+      cp "$ovmf_vars_src" "$ovmf_vars"
+      chmod u+w "$ovmf_vars"
+    fi
     ovmf_args=(
       -drive "if=pflash,format=raw,readonly=on,file=$ovmf_code"
       -drive "if=pflash,format=raw,file=$ovmf_vars"
