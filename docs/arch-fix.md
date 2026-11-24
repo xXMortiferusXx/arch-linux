@@ -620,7 +620,28 @@ greetd-PATH) startet jetzt `/usr/bin/start-umbriel` mit
 `>/dev/null 2>&1`; das Paket-Skript bleibt unangetastet. Zum Debuggen
 direkt `/usr/bin/start-umbriel` aufrufen.
 
-### 8.11 Geänderte Dateien
+### 8.11 Nex-Nachaudit (2026-11-24)
+
+Vollständiger Abgleich von `hosts/nex/configuration.nix` + importierten
+Modulen gegen das laufende Arch-System. Nachgezogen:
+
+- `faugus-launcher` (chaotic) via `FAUGUS=1`; `orca-slicer-bin` via `ORCA=1`.
+- `systembus-notify` (Paket + User-Service, NixOS `services.systembus-notify`).
+- Kitty-Config (`/etc/xdg/kitty/kitty.conf`), mpv-Config (nex),
+  Discord-Autostart mit SNI-Wartezeit.
+- AusweisApp-Ports 24727/tcp+udp auf `wlan0`/`eno1`.
+- `gamescope` `cap_sys_nice` + Pacman-Hook (NixOS `capSysNice`).
+- `fs.file-max=2097152`, `plocate` stündlich, rtkit `LogLevelMax=info`,
+  `vulkan-extra-layers`.
+- `EDITOR=nvim` in der nex-Session.
+
+Bewusste Abweichungen: Arch nutzt `nvidia-open-dkms` (NixOS-Modul steht
+auf `open = false`, auf Ampere gleichwertig und live stabil); Nix-spezifische
+Skripte (`nix-check`, `nvidia-track`, `boosteroid-track`, `audio-rate`,
+`mic-check`) bleiben absichtlich draußen. Die NixOS-Gruppen
+`networkmanager`/`greeter` entfallen (Arch: Polkit bzw. ACL).
+
+### 8.12 Geänderte Dateien
 
 | Datei | Änderung |
 |---|---|
@@ -650,4 +671,18 @@ direkt `/usr/bin/start-umbriel` aufrufen.
 | `shared/home/.config/mimeapps.list` | NixOS-MIME-Defaults (zathura/Loupe/mpv/Amberol/nvim/Thunderbird) |
 | `shared/home/.local/share/applications/org.pwmt.zathura-pdf-mupdf.desktop` | `%F`-Override für Thunar |
 | `shared/config/usr/local/bin/start-umbriel` | leiser Login-Wrapper (stdout/stderr → `/dev/null`) |
+| `lib/extras.sh` (`extras_gaming`/`extras_apps`) | Faugus/Orca über `FAUGUS`/`ORCA`, `gamescope`-Cap |
+| `hosts/nex/settings.env`, `hosts/lion-pc/settings.env` | `FAUGUS`/`ORCA` |
+| `hosts/nex/config/etc/nftables.conf` | AusweisApp 24727/tcp+udp |
+| `hosts/nex/config/etc/environment` | `EDITOR=nvim` |
+| `hosts/nex/home/.config/mpv/mpv.conf` | NixOS-mpv-Config |
+| `hosts/nex/home/.config/systemd/user/discord.service` | Discord-Autostart |
+| `shared/config/etc/xdg/kitty/kitty.conf` | Kitty-Config |
+| `shared/config/etc/pacman.d/hooks/99-gamescope-cap.hook` | `cap_sys_nice` nach Updates |
+| `shared/config/etc/systemd/system/plocate-updatedb.timer.d/50-hourly.conf` | `plocate` stündlich |
+| `shared/config/etc/systemd/system/rtkit-daemon.service.d/50-loglevel.conf` | rtkit-LogLevel |
+| `shared/config/etc/sysctl.d/99-tuning.conf` | `fs.file-max` |
+| `shared/config/usr/local/bin/wait-for-tray` | SNI-Wartezeit für Discord |
+| `shared/home/.config/systemd/user/systembus-notify.service` | Systembus-Benachrichtigungen |
+| `shared/packages.list` | `systembus-notify`, `libcap`, `vulkan-extra-layers` |
 | `hosts/nex/home/.config/umbriel/cfg/display.toml` | eDP-Zuordnung in den Kommentaren korrigiert |

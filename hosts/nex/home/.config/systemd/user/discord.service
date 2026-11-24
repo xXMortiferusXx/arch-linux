@@ -1,0 +1,13 @@
+[Unit]
+Description=Discord
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStartPre=/usr/local/bin/wait-for-tray
+ExecStart=/usr/bin/discord
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

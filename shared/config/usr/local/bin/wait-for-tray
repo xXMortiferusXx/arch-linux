@@ -1,0 +1,15 @@
+#!/bin/sh
+# Wartet, bis Noctalia den SNI-Tray-Watcher registriert hat. Electron-Apps
+# (Discord) registrieren ihr Tray nur einmal beim Start.
+i=0
+while [ "$i" -lt 300 ]; do
+  if /usr/bin/busctl --user get-property \
+       org.kde.StatusNotifierWatcher /StatusNotifierWatcher \
+       org.kde.StatusNotifierWatcher IsStatusNotifierHostRegistered \
+       2>/dev/null | /usr/bin/grep -q 'b true'; then
+    exit 0
+  fi
+  /usr/bin/sleep 0.3
+  i=$((i + 1))
+done
+exit 0

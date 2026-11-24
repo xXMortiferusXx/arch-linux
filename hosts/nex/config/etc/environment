@@ -7,6 +7,7 @@ TRACKER_USE_RUNNER=0
 TZ=Europe/Berlin
 # Electron/Chromium nativ auf Wayland (Pendant zu NIXOS_OZONE_WL)
 ELECTRON_OZONE_PLATFORM_HINT=auto
+EDITOR=nvim
 
 # Compositor/Display laeuft auf der iGPU (radeonsi)
 LIBVA_DRIVER_NAME=radeonsi

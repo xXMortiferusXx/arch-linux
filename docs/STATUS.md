@@ -30,9 +30,9 @@ shared/               gilt für ALLE Hosts
   config/             /etc-Overlay (sysctl, udev, journald, systemd, zram,
                       polkit, Portale, fastfetch, Firefox, Thunar, nftables-Basis,
                       arch-check/arch-clean, greetd-Drop-in, zink-run, steam)
-  home/               Dotfiles (fish, starship, nvim, icons, xsettingsd,
-                      arch-update-Config + Timer + Tray-Service, OBEX,
-                      MIME-Defaults)
+  home/               Dotfiles (fish, starship, nvim, kitty, mpv, icons,
+                      xsettingsd, arch-update-Config + Timer + Tray-Service,
+                      OBEX, Discord-Autostart, systembus-notify, MIME-Defaults)
   grub/               GRUB-Theme "Unholy Angels" (Bild + theme.txt + Generator)
 hosts/<host>/         nur die Unterschiede
   packages.list       Host-Pakete
@@ -87,6 +87,8 @@ Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 | `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp |
 | `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 |
 | `BEDROCK` | BedrockOnLinux-AppImage (Windows-Client, Xbox-Friends/Einladungen) | 0 | 1 |
+| `FAUGUS` | Faugus Launcher (chaotic) | 1 | 0 |
+| `ORCA` | OrcaSlicer (chaotic, `orca-slicer-bin`) | 1 | 0 |
 
 Der User bekommt immer `wheel,audio,video`; sysusers-Gruppen werden vor
 `useradd` angelegt (im Chroot existieren sie sonst nicht).
@@ -150,11 +152,11 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 | `bpftune` (Netzwerk-Auto-Tuning) | `bpftune-git` (chaotic) + `bpftune.service` | ✅ |
 | `touchpad` | `touchpad-toggle` + udev | ✅ |
 | `audio-gc7` | PipeWire/WirePlumber/udev/`gc7-reset` | ✅ (pro-audio + param_eq live geprüft) |
-| `gaming` (steam, gamescope, udev, scripts, sunshine) | Pakete, 99-gaming.rules, `game-performance`, Steam-Wrapper, LizardByte | ✅ |
+| `gaming` (steam, gamescope, udev, scripts, sunshine, faugus) | Pakete, 99-gaming.rules, `game-performance`, Steam-Wrapper, LizardByte, `cap_sys_nice`, `FAUGUS` | ✅ |
 | `cachyos-tools` (zink-run, dlss-swapper) | `usr/local/bin` | ✅ |
-| `ausweis`, `zink-run` | `ausweisapp`, `zink-run` | ✅ |
+| `ausweis`, `zink-run` | `ausweisapp`, `zink-run`, Ports 24727 (wlan0/eno1) | ✅ |
 | `users/*` (Gruppen) | `settings.env` + `EXTRA_GROUPS` | ✅ (nex: input/scanner/lp, lion: scanner/lp/i2c) |
-| `home/*` (Dotfiles, Noctalia-State, `.face`) | `hosts/*/home` + AccountsService-Icon | ✅ |
+| `home/*` (Dotfiles, Noctalia-State, `.face`, Kitty/mpv/Discord/MIME) | `hosts/*/home` + AccountsService-Icon | ✅ |
 | `polkit` (Wheel + passwordless Greeter-Sync) | `rules.d/49-wheel`, `50-noctalia-sync` | ✅ |
 | `noctalia-greeter` | greetd + `/var/lib/noctalia-greeter/greeter.toml`, `getty@tty1` maskiert, Greeter-Home korrigiert | ✅ |
 | `printing`/`sane` | cups(+browsed), sane, sane-airscan | ✅ |

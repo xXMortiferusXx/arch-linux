@@ -60,6 +60,8 @@ fastfetch
 smartmontools
 bind
 libnotify
+systembus-notify
+libcap
 pciutils
 usbutils
 mesa-demos
@@ -90,6 +92,7 @@ sound-theme-freedesktop
 mesa
 vulkan-icd-loader
 vulkan-tools
+vulkan-extra-layers
 vulkan-swrast
 libva-utils
 linux-headers

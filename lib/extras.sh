@@ -338,7 +338,16 @@ extras_gaming() {
     extras_bedrock
   fi
 
-  ui_ok "Heroic, ProtonPlus, lsfg-vk (ggf. BedrockOnLinux) installiert"
+  if [ "${FAUGUS:-0}" = 1 ]; then
+    arch-chroot "$TARGET" pacman -S --needed --noconfirm faugus-launcher \
+      || ui_warn "faugus-launcher nicht verfuegbar"
+  fi
+
+  # gamescope braucht CAP_SYS_NICE (NixOS: programs.gamescope.capSysNice).
+  arch-chroot "$TARGET" setcap cap_sys_nice=ep /usr/bin/gamescope 2>/dev/null \
+    || ui_warn "gamescope: cap_sys_nice nicht gesetzt"
+
+  ui_ok "Heroic, ProtonPlus, lsfg-vk (ggf. Bedrock/Faugus) installiert"
 }
 
 # BedrockOnLinux: Windows-Bedrock (GDK) via Wine, mit echten Xbox-Friends/
@@ -429,6 +438,11 @@ extras_apps() {
   if [ "${SCANNER:-1}" = 1 ]; then
     arch-chroot "$TARGET" pacman -S --needed --noconfirm naps2 \
       || ui_warn "naps2 nicht verfuegbar"
+  fi
+
+  if [ "${ORCA:-0}" = 1 ]; then
+    arch-chroot "$TARGET" pacman -S --needed --noconfirm orca-slicer-bin \
+      || ui_warn "orca-slicer-bin nicht verfuegbar"
   fi
 
   # xone: Xbox-Controller (USB-Dongle + BT) - DKMS baut im Chroot
