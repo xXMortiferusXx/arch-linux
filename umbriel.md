@@ -15,6 +15,7 @@ Zweck: Version, Config-Stand und Upstream-Änderungen für den **Arch-Port**
 | Upstream `main` | `a909081a934a` |
 | Upstream `cachix` | `a909081a934a` (identisch mit `main`) |
 | Config-Validierung | `umbriel config validate` → `config: ok` |
+| Border-Effekt | `pulse-bright` (nur fokussiert, blau) |
 | NixOS-Pin | `2572005a9fe5505618f783534ca0ca6d0e745090` (15.11., revCount 1581) |
 | Abstand | **91 Commits** hinter Arch/Upstream |
 
@@ -65,10 +66,10 @@ Nicht verwechseln:
 - **`appearance`** (aktiv): `blur`, `shadow`, `corner_radius = 12`,
   `drag_opacity`, `animation` (popin/fade/snappy). Das ist der normale
   „moderne“ Look und läuft bereits.
-- **`[effects]`** (aus): separate GLSL-Engine für Border-/Window-/Screen-/
-  Cursor-Effekte. `umbriel effects` zeigt aktuell **keine Presets/Pools**;
-  `effects.border/window/screen/cursor` sind leer, `effects.border_unfocused`
-  ist `false`.
+- **`[effects]`** (aktiv, aber nur `pulse-bright`): separate GLSL-Engine für
+  Border-/Window-/Screen-/Cursor-Effekte. `umbriel effects` zeigt
+  `pulse-bright` als `compiled`; ausgewählt ist nur der Border-Effekt für das
+  **fokussierte** Fenster; `effects.border_unfocused` ist `false`.
 
 Mitgelieferte Presets (nur nach Include + Selektor aktiv):
 
@@ -80,39 +81,37 @@ Mitgelieferte Presets (nur nach Include + Selektor aktiv):
 | Window | `scanlines` |
 | Animation | `reveal`, `squash`, `workspace_wipe` |
 
-**Empfehlung:** standardmäßig aus lassen. Der einzige subtile Kandidat ist
-**`pulse`** als Border-Effekt **nur für das fokussierte Fenster**
-(`border_effect_unfocused` bleibt `false`), optional **`glow`** für den Cursor.
-`vignette` (Screen) deaktiviert Direct-Scanout und kann Spiele/Video stören;
-`scanlines` ist retro; `audio` ist ein Gimmick mit Spektrum-Kosten.
+**Aktiv seit 2026-11-24:** `pulse-bright` – Kopie des gebündelten
+`pulse`-Shaders mit `palette = false` (heller Blau-Fallback),
+`light.intensity = 3.0`, `light.spread = 100`. Grund: Der Noctalia-Akzent
+`#616200` ist sehr dunkel und der Puls war damit praktisch unsichtbar.
 
-Getesteter Opt-in-Snippet (nicht aktiv; in `config.toml` ergänzen):
+Dateien:
 
-```toml
-[include]
-files = [
-  # ... bestehende cfg/*.toml ...
-  "/usr/share/umbriel/effects/border/pulse/effect.toml",
-  # "/usr/share/umbriel/effects/cursor/glow/effect.toml",
-]
+- `shared/home/.config/umbriel/cfg/effects.toml`
+- `shared/home/.config/umbriel/cfg/effects/pulse-bright/shader.glsl`
+  (Kopie von `/usr/share/umbriel/effects/border/pulse/shader.glsl`, MIT)
+- In `hosts/nex/home/.config/umbriel/config.toml` und
+  `hosts/lion-pc/home/.config/umbriel/config.toml` ist `cfg/effects.toml`
+  in `[include].files` eingetragen.
 
-[effects]
-border = "pulse"
-# cursor = "glow"
-```
+Die übrigen Presets bleiben bewusst aus: `vignette` (Screen) deaktiviert
+Direct-Scanout und kann Spiele/Video stören; `scanlines` ist retro; `audio`
+ist ein Spektrum-Gimmick; `glow`/`trail` wären optional.
+`border_effect_unfocused = true` würde alle unfokussierten Fenster leuchten
+lassen – bewusst nicht gesetzt.
 
-Danach `umbriel config validate` (muss `config: ok` liefern) und der
-Compositor lädt neu. Rollback: die beiden Include-Zeilen und `[effects]`
-entfernen. `border_effect_unfocused = true` würde auch alle unfokussierten
-Fenster leuchten lassen – bewusst nicht gesetzt.
+Rollback: `cfg/effects.toml` aus dem Include nehmen bzw. den Selektor
+`[effects] border` entfernen; danach `umbriel config validate`.
 
 ## Feature-Entscheidung
 
-**Nichts muss migriert oder konfiguriert werden.** Die aktuelle Config ist
-gültig und bleibt bewusst minimal.
+Die Config ist gültig; abgesehen vom bewusst gewählten `pulse-bright` bleibt
+sie minimal.
 
 | Feature | Empfehlung |
 |---|---|
+| `pulse-bright` (Border) | **Aktiv**, nur fokussiert; blaues Fallback-Licht statt dunklem Noctalia-Akzent |
 | `global_shortcuts` | Nichts tun – Portal/Freigabe läuft automatisch; Apps können Shortcuts registrieren |
 | Scratchpad Show/Hide/Pin/Stay-up | Optional; wir nutzen bereits `Mod+Tab` + `scratchpad-window-show-next/previous` |
 | `spawn-floating` | Optional; z. B. für ein Floating-Terminal, aktuell nicht gebunden |
@@ -152,6 +151,9 @@ Anschließend beide Hosts validieren und diese Datei fortschreiben.
 
 ## Historie
 
+- **2026-11-24 (Effekt)**: `pulse-bright` aktiviert (nex + lion über
+  `shared/home`); `palette=false`/Light 3.0/100, weil der Noctalia-Akzent
+  `#616200` zu dunkel war. `config: ok`, nur fokussiertes Fenster.
 - **2026-11-24**: Arch `a909081` = Upstream `main`/`cachix`; NixOS-Pin
   `2572005` (91 Commits zurück). `config: ok`; keine Migration. Neue Features:
   Global Shortcuts, Scratchpad-Verbesserungen, `spawn-floating`,
