@@ -41,6 +41,10 @@ install_boot() {
       arch-chroot "$TARGET" grub-mkfont -s 22 \
         -o "/boot/grub/themes/unholy-angels/DejaVu Sans Regular 22.pf2" \
         /usr/share/fonts/TTF/DejaVuSans.ttf
+      # theme.txt nutzt fuer message-font zusaetzlich DejaVu Sans 16.
+      arch-chroot "$TARGET" grub-mkfont -s 16 \
+        -o "/boot/grub/themes/unholy-angels/DejaVu Sans Regular 16.pf2" \
+        /usr/share/fonts/TTF/DejaVuSans.ttf
       if arch-chroot "$TARGET" test -f /usr/share/fonts/TTF/DejaVuSansMono.ttf; then
         arch-chroot "$TARGET" grub-mkfont -s 16 \
           -o "/boot/grub/themes/unholy-angels/DejaVu Sans Mono Regular 16.pf2" \

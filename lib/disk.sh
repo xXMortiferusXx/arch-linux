@@ -93,5 +93,8 @@ mount_target() {
   mount -o "subvol=@var_cache,$opts"  "$PART_ROOT" /mnt/var/cache
   mount -o "subvol=@var_tmp,$opts"    "$PART_ROOT" /mnt/var/tmp
   mount -o "subvol=@var_log,$opts"    "$PART_ROOT" /mnt/var/log
+  # pacstrap/filesystem erwartet /var/tmp als welt-schreibbares Sticky-Dir
+  # (1777). Das Subvolume-Root kommt sonst mit 755 aus mkfs.
+  chmod 1777 /mnt/var/tmp
   mount "$PART_ESP" /mnt/boot
 }

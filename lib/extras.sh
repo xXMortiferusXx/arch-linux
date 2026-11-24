@@ -591,6 +591,8 @@ extras_system() {
   # paru (AUR-Helper) aus chaotic; base-devel kommt aus packages.list.
   arch-chroot "$TARGET" pacman -S --needed --noconfirm paru \
     || ui_warn "paru nicht installierbar – AUR-Pakete manuell bauen"
+  # Unsere /etc/paru.conf bleibt; das Paket legt sonst eine .pacnew daneben.
+  rm -f "$TARGET/etc/paru.conf.pacnew"
 
   arch-chroot "$TARGET" pacman -S --needed --noconfirm ananicy-rules-git \
     || ui_warn "ananicy-rules-git nicht verfuegbar – nur ananicy-cpp"

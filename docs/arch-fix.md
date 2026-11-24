@@ -686,3 +686,36 @@ Skripte (`nix-check`, `nvidia-track`, `boosteroid-track`, `audio-rate`,
 | `shared/home/.config/systemd/user/systembus-notify.service` | Systembus-Benachrichtigungen |
 | `shared/packages.list` | `systembus-notify`, `libcap`, `vulkan-extra-layers` |
 | `hosts/nex/home/.config/umbriel/cfg/display.toml` | eDP-Zuordnung in den Kommentaren korrigiert |
+
+## 9. QEMU-Test Lion (2026-11-24)
+
+Das ISO wurde gebaut (956 MB) und `lion-pc` in QEMU mit OVMF/UEFI,
+headless über die serielle Konsole installiert und gebootet.
+
+Ergebnis:
+
+- Installation vollständig, erster Boot „running“, **keine failed Units**
+- SSH über Hostfwd/Port 2222 funktioniert
+- `pacman -Dk`: keine Datenbankfehler
+- `greetd` + Noctalia-Greeter laufen; grafischer Login wurde headless nicht
+  durchgeklickt (User-Services sind enabled, ohne Login erwartungsgemäß inaktiv)
+- `flatpak`/Flathub + `flatpak-key-refresh.timer`, `bazaar-git` inkl.
+  eingehendem Bazaar-User-Service
+- `scx_loader` lädt `scx_lavd`; `bpftune`/`ananicy-cpp` aktiv
+- BedrockOnLinux-AppImage (167 MB), Zathura-PDF-Backend, Kitty-Config,
+  MIME-Defaults vorhanden
+- Firewall: SSH nur aus LAN, sonst wie für lion vorgesehen
+- `noctalia-greeter passwordless-sync enable lion` wurde erfolgreich
+  ausgeführt („Enabled passwordless appearance sync for 'lion'“)
+
+Beim Test gefundene und behobene Installer-Reste:
+
+- `/var/tmp` war im Ziel 755 → `lib/disk.sh` setzt jetzt 1777
+- `paru` hinterließ `/etc/paru.conf.pacnew` → wird in `extras_system` entfernt
+- GRUB-Theme referenzierte `DejaVu Sans Regular 16`, die Datei fehlte →
+  `lib/boot.sh` erzeugt sie jetzt zusätzlich
+- QEMU headless nutzt `-vga std`; `virtio-vga` crasht in dieser
+  QEMU-Version ohne Display.
+
+Der echte Lion-Test bleibt für DDC/CI, AMD-GPU, Bedrock-Einladungen und den
+visuellen Greeter/Noctalia-Login nötig.
