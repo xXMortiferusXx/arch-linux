@@ -88,6 +88,7 @@ vulkan-tools
 vulkan-swrast
 libva-utils
 linux-headers
+amd-ucode
 # --- Anwendungen (aus modules/home/mortiferus/packages.nix) ---------------
 kitty
 neovim

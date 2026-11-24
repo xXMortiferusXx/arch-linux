@@ -1,0 +1,26 @@
+#!/bin/sh
+# aus modules/programs/gaming/scripts-lion.nix: Performance-Profil +
+# Monitore auf 100 % (DDC/CI), Inhibit; beim Beenden zurueck auf 80 %.
+set -u
+PCTL=powerprofilesctl
+DCTL=ddcutil
+
+set_brightness_all() {
+  v="$1"
+  for d in 1 2 3 4; do
+    $DCTL setvcp 10 "$v" --display "$d" >/dev/null 2>&1
+  done
+}
+
+$PCTL set performance >/dev/null 2>&1
+set_brightness_all 100
+
+restore() {
+  $PCTL set balanced >/dev/null 2>&1
+  set_brightness_all 80
+}
+trap restore EXIT
+
+echo "--- game-performance: Performance + Monitore auf 100%, Inhibit aktiv ---"
+systemd-inhibit --why "game-performance running" "$@"
+exit $?
