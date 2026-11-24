@@ -215,8 +215,9 @@ Cloud-Gaming (Edge/Boosteroid), Flatpak, DNS `192.168.178.1` (FritzBox).
 - **GameDAC**: udev (USB-Autosuspend aus), WirePlumber (S32LE/48 kHz/2 ch,
   kein Suspend), `game-performance`/`edge-performance`.
 - **ASM** umschaltbar via `ASM_FLAVOR` (`fork` Default | `upstream` | `none`):
-  Default ist der eigene Build `1.4.27+fork.3` (lief mit dem GameDAC Gen1),
-  Upstream 1.7.10 alternativ. Fork-PKGBUILD liegt unter
+  Default ist der eigene Build `1.4.27+fork.3` (lief mit dem GameDAC Gen1;
+  Entscheidung 2026-11-24: bewährter Stand hat Vorrang, weil kein Test vor
+  Ort möglich ist), Upstream 1.7.10 alternativ. Fork-PKGBUILD liegt unter
   `hosts/benny/pkgbuilds/`. Dazu `asm-verify` auf dem Host für
   Remote-Diagnose (Sinks, Kanal-Layout, Streams, Journal).
 - Details und Testliste: `hosts/benny/README.md`.

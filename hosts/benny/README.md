@@ -44,6 +44,10 @@ die NixOS-Config ist derzeit nicht testbar.
 - Der Fork hat upstream gegenüber nur noch vier Kleinigkeiten voraus
   (GameDAC-Rad → Default-Sink, Settings-RMW, ChatMix-Persistenz,
   Stream-Guard-PID) – keine davon ist fuer die Audio-Kette kritisch.
+- **Entscheidung 2026-11-24:** Fork bleibt Default. Begründung: genau dieser
+  Stand lief mit dem GameDAC Gen1; Benny kann nicht vor Ort testen und ist
+  bei Problemen schnell überfordert. Upstream wird nur in einem ruhigen
+  Fenster mit paralleler SSH-Begleitung getestet.
 - **I2C=1** (anders als der alte Plan in `docs/STATUS.md` mit `I2C=0`): die
   NixOS-Config gibt Benny `i2c`-Gruppe, udev-Regel und `ddcutil`.
 - **SSH oeffentlich**: bewusst, weil Benny nicht im eigenen Netz steht.
