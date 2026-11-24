@@ -141,8 +141,13 @@ Wiederherstellen nach der Installation:
 
 ```bash
 rsync -aH /home/mortiferus/backups/lion-pc/2026-11-24/ lion@lion:/tmp/lion-restore/
-ssh -t lion 'sudo /tmp/lion-restore/restore-home.sh'
+ssh -t lion 'sudo /tmp/lion-restore/restore-home.sh --flatpak'
 ```
+
+Das Skript korrigiert die NixOS-Eigenheiten für Arch: Umbriel-`autostart`,
+Firefox-Profil nach `~/.mozilla/firefox` samt `profiles.ini`, Profilbild,
+tote `/nix/store`-Symlinks, Bedrock-Welten. Getestet mit Probelauf nach
+`/var/tmp` (13.270 Dateien, 0 tote Symlinks).
 
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
