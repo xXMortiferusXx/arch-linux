@@ -30,7 +30,7 @@ install_extras() {
 
   if [ -x "$profile/post.sh" ]; then
     ui_step "Host-Post-Skript"
-    "$profile/post.sh" "$TARGET"
+    "$profile/post.sh" "$TARGET" "${REPO_DIR:-.}"
   fi
 
   extras_snap_pac

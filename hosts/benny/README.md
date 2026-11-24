@@ -26,14 +26,24 @@ die NixOS-Config ist derzeit nicht testbar.
 | `config/etc/wireplumber/…` | GameDAC: S32LE/48 kHz/2ch, Suspend aus |
 | `config/etc/systemd/system-sleep/50-r8169-reset.sh` | Link nach S3 zurueckholen |
 | `config/usr/local/bin/{game-performance,edge-performance}` | Performance-Profil + Inhibit |
+| `config/usr/local/bin/asm-verify` | Statusbericht für Remote-Support (Sinks, Kanäle, Streams, Journal) |
+| `pkgbuilds/arctis-sound-manager-fork` | Fork-Build (Git-Commit 2e5112fa) |
 
 ## Entscheidungen
 
-- **ASM: Upstream 1.7.10 aus der AUR**, nicht der eigene Fork. Der Fork
-  backportete im Kern Upstream 1.4.28–1.4.34; „echtes 7.1 statt Doppel-Mix"
-  ist seit **1.7.1** upstream (`loopback_manager.py`). Einziger
-  Verhaltensunterschied: das GameDAC-Rad spiegelt upstream bewusst nicht in
-  den Default-Sink – falls Benny das braucht, kommt es als Einzel-Patch obendrauf.
+- **ASM umschaltbar** über `ASM_FLAVOR` in `settings.env`:
+  - `fork` (**Default**): eigener Build `1.4.27+fork.3` aus
+    `pkgbuilds/arctis-sound-manager-fork` – genau der Stand, der mit dem
+    GameDAC Gen1 monatelang lief. Bewusst konservativ, weil Benny nicht
+    vor Ort testen kann.
+  - `upstream`: AUR 1.7.10. Code-Vergleich zeigt: alle GameDAC-/7.1-Fixes
+    sind dort enthalten (u. a. 8-Kanal-Capture, `stream.dont-remix=false`);
+    ungetestet auf dieser Hardware.
+  - `none`: nicht installieren (Audio laeuft dann ohne Sonar/EQ).
+  Ein Wechsel ist eine Zeile + Neuinstallation des Pakets, kein Umbau.
+- Der Fork hat upstream gegenüber nur noch vier Kleinigkeiten voraus
+  (GameDAC-Rad → Default-Sink, Settings-RMW, ChatMix-Persistenz,
+  Stream-Guard-PID) – keine davon ist fuer die Audio-Kette kritisch.
 - **I2C=1** (anders als der alte Plan in `docs/STATUS.md` mit `I2C=0`): die
   NixOS-Config gibt Benny `i2c`-Gruppe, udev-Regel und `ddcutil`.
 - **SSH oeffentlich**: bewusst, weil Benny nicht im eigenen Netz steht.
@@ -46,5 +56,10 @@ die NixOS-Config ist derzeit nicht testbar.
 3. `pactl list sinks` mit GameDAC → S32LE/48 kHz, kein Suspend.
 4. `arctis-manager`/Tray starten, Sonar-Kette anlegen, 7.1-Quelle testen
    (`speaker-test -c8`): Center/Rear duerfen nicht doppelt ankommen.
-5. SSH von `nex` aus: `ssh benny` (Key), Passwort-Login muss scheitern.
-6. Nach S3: Netzwerk-Link pruefen (r8169-Hook).
+   Danach `asm-verify` laufen lassen und die Datei `~/asm-check-*.txt` per
+   SSH abholen – darin stehen Kanal-Layout, Node-Status, Streams, Journal.
+5. Bei Problemen: `ASM_FLAVOR` in `settings.env` umstellen
+   (`fork` ↔ `upstream`) und nur das Paket neu bauen/installieren – der Rest
+   des Systems bleibt unberührt. Rückweg auf den Fork ist der Default.
+6. SSH von `nex` aus: `ssh benny` (Key), Passwort-Login muss scheitern.
+7. Nach S3: Netzwerk-Link pruefen (r8169-Hook).

@@ -214,9 +214,11 @@ Cloud-Gaming (Edge/Boosteroid), Flatpak, DNS `192.168.178.1` (FritzBox).
   überall, `sshd_config.d/10-benny-hardening.conf` nur Keys, `AllowUsers benny`.
 - **GameDAC**: udev (USB-Autosuspend aus), WirePlumber (S32LE/48 kHz/2 ch,
   kein Suspend), `game-performance`/`edge-performance`.
-- **ASM**: Upstream 1.7.10 aus der AUR (der Fork hat nur 1.4.28–1.4.34
-  backportet; „echtes 7.1" ist seit 1.7.1 drin). Installation in
-  `hosts/benny/post.sh` zusammen mit `python-pulsectl` und `boosteroid`.
+- **ASM** umschaltbar via `ASM_FLAVOR` (`fork` Default | `upstream` | `none`):
+  Default ist der eigene Build `1.4.27+fork.3` (lief mit dem GameDAC Gen1),
+  Upstream 1.7.10 alternativ. Fork-PKGBUILD liegt unter
+  `hosts/benny/pkgbuilds/`. Dazu `asm-verify` auf dem Host für
+  Remote-Diagnose (Sinks, Kanal-Layout, Streams, Journal).
 - Details und Testliste: `hosts/benny/README.md`.
 
 Quelle der Werte: `nix-config` (`hosts/benny`, `modules/hardware/*`,

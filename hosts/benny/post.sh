@@ -8,6 +8,7 @@
 set -uo pipefail
 
 TARGET="${1:-/mnt}"
+REPO_DIR="${2:-.}"
 USER_NAME=benny
 PROBLEMS=0
 
@@ -48,18 +49,37 @@ aur_install() {
   log "$pkg installiert"
 }
 
-# Python-Bindings fuer PulseAudio/PipeWire (chaotic; sonst AUR)
-if pac python-pulsectl; then
-  log "python-pulsectl installiert (chaotic)"
-else
-  warn "python-pulsectl nicht in den Repos - versuche AUR"
-  aur_install python-pulsectl || warn "python-pulsectl fehlt - ASM startet evtl. nicht"
-fi
+# Baut ein lokales PKGBUILD (Kopie aus dem Repo) als benny.
+local_pkgbuild_install() {
+  local src="$1" name
+  name="$(basename "$src")"
+  if [ ! -d "$src" ]; then
+    warn "PKGBUILD-Verzeichnis fehlt: $src"
+    return 1
+  fi
+  arch-chroot "$TARGET" rm -rf "/tmp/build-$name"
+  cp -a "$src" "$TARGET/tmp/build-$name"
+  arch-chroot "$TARGET" chown -R "$USER_NAME:$USER_NAME" "/tmp/build-$name"
+  log "PKGBUILD: baue $name"
+  if ! arch-chroot "$TARGET" runuser -u "$USER_NAME" -- \
+      env HOME="/home/$USER_NAME" bash -c "
+        set -euo pipefail
+        cd /tmp/build-$name
+        makepkg --noconfirm --nodeps --nocheck
+      "; then
+    warn "Build fehlgeschlagen: $name"
+    return 1
+  fi
+  if ! arch-chroot "$TARGET" bash -c "pacman -U --noconfirm /tmp/build-$name/*.pkg.tar.zst"; then
+    warn "Installation fehlgeschlagen: $name"
+    return 1
+  fi
+  arch-chroot "$TARGET" rm -rf "/tmp/build-$name"
+  log "$name installiert"
+}
 
-# --- Arctis Sound Manager (Upstream 1.7.10, enthaelt den echten 7.1-Fix) ---
-if aur_install arctis-sound-manager; then
-  # User-Units aktivieren: 'systemctl --user enable' geht im chroot nicht,
-  # deshalb die Wants-Symlinks direkt anlegen.
+# ASM-User-Units aktivieren (kein User-Bus im chroot -> Wants-Symlinks)
+asm_units_enable() {
   arch-chroot "$TARGET" bash -c '
     set -e
     install -d /etc/systemd/user/graphical-session.target.wants \
@@ -75,9 +95,49 @@ if aur_install arctis-sound-manager; then
                "/etc/systemd/user/default.target.wants/$u.service"
     done
   ' || warn "ASM-User-Units nicht aktiviert"
-else
-  warn "Arctis Sound Manager nicht installiert"
-fi
+}
+
+# ASM-Abhaengigkeit, die nicht in den offiziellen Repos liegt.
+asm_deps() {
+  if pac python-pulsectl; then
+    log "python-pulsectl installiert (chaotic)"
+  else
+    warn "python-pulsectl nicht in den Repos - versuche AUR"
+    aur_install python-pulsectl || warn "python-pulsectl fehlt - ASM startet evtl. nicht"
+  fi
+}
+
+# --- Arctis Sound Manager -------------------------------------------------
+# Standard: Fork (bewaehrt mit GameDAC Gen1). Umschalten ueber ASM_FLAVOR
+# in hosts/benny/settings.env: fork | upstream | none.
+ASM_FLAVOR="${ASM_FLAVOR:-fork}"
+case "$ASM_FLAVOR" in
+  none)
+    log "ASM: uebersprungen (ASM_FLAVOR=none)"
+    ;;
+  upstream)
+    log "ASM: Upstream 1.7.10 aus der AUR"
+    asm_deps
+    if aur_install arctis-sound-manager; then
+      asm_units_enable
+    else
+      warn "Arctis Sound Manager (upstream) nicht installiert"
+    fi
+    ;;
+  fork)
+    log "ASM: Fork 1.4.27+fork.3 (lokales PKGBUILD)"
+    asm_deps
+    if local_pkgbuild_install \
+        "$REPO_DIR/hosts/benny/pkgbuilds/arctis-sound-manager-fork"; then
+      asm_units_enable
+    else
+      warn "Arctis Sound Manager (Fork) nicht installiert"
+    fi
+    ;;
+  *)
+    warn "Unbekanntes ASM_FLAVOR '$ASM_FLAVOR' (erlaubt: fork|upstream|none)"
+    ;;
+esac
 
 # --- Boosteroid (AUR) ------------------------------------------------------
 if pac libva libvdpau libxcb traceroute ocl-icd pcre2 libxi \

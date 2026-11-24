@@ -161,7 +161,8 @@ FLATPAK="${FLATPAK:-0}"         # Flatpak + Bazaar
 LAPTOP="${LAPTOP:-1}"           # Legion-Akku-Limit
 SSHD="${SSHD:-1}"               # SSH-Server (nex: aus, lion/benny: an)
 I2C="${I2C:-0}"                 # ddcutil/Monitor-Helligkeit
-export USERNAME GPU SUNSHINE SCANNER FLATPAK LAPTOP SSHD I2C
+ASM_FLAVOR="${ASM_FLAVOR:-fork}" # GameDAC-Software: fork | upstream | none
+export USERNAME GPU SUNSHINE SCANNER FLATPAK LAPTOP SSHD I2C ASM_FLAVOR
 [ -b "$DISK" ] || die "Kein Blockgeraet: $DISK"
 
 # Spiele-Platte: nur mounten, nie formatieren.

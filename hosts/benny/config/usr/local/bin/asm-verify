@@ -1,0 +1,55 @@
+#!/bin/bash
+# Statusbericht fuer Arctis Sound Manager + GameDAC.
+# Gedacht fuer Remote-Support per SSH: sammelt alles Relevante in eine Datei,
+# ohne Dialoge oder GUI. Aufruf: asm-verify
+out="$HOME/asm-check-$(date +%Y%m%d-%H%M).txt"
+
+{
+  echo "== $(date -Is) =="
+  echo "Kernel: $(uname -r)"
+  echo "ASM:    $(pacman -Q arctis-sound-manager 2>/dev/null || echo 'nicht installiert')"
+  echo "User:   $(id -un)  Session: ${XDG_SESSION_TYPE:-unbekannt}"
+  echo
+  echo "== Sinks =="
+  pactl list short sinks 2>&1
+  echo
+  echo "== Sources =="
+  pactl list short sources 2>&1
+  echo
+  echo "== GameDAC (ALSA-Karte) =="
+  grep -H . /proc/asound/card*/usbid 2>/dev/null
+  cat /proc/asound/card*/pcm0p/sub0/hw_params 2>/dev/null | head -6
+  echo
+  echo "== Arctis-/Effect-Nodes =="
+  if command -v python3 >/dev/null && command -v pw-dump >/dev/null; then
+    pw-dump 2>/dev/null | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception as exc:
+    print("pw-dump nicht lesbar:", exc); raise SystemExit
+for n in data:
+    p = (n.get("info") or {}).get("props") or {}
+    name = p.get("node.name", "")
+    if not (name.startswith("Arctis") or name.startswith("effect_")):
+        continue
+    print("%-28s ch=%s pos=%s state=%s" % (
+        name, p.get("audio.channels"), p.get("audio.position"), p.get("state", "")))
+'
+  else
+    echo "python3 oder pw-dump fehlt"
+  fi
+  echo
+  echo "== App-Streams =="
+  pactl list sink-inputs 2>/dev/null | grep -E 'Sink Input|Sink:|application.name|Sample Specification' | head -80
+  echo
+  echo "== User-Services =="
+  systemctl --user is-active arctis-manager app-ArctisManager \
+    pipewire filter-chain 2>&1
+  echo
+  echo "== ASM-Journal (letzte 40) =="
+  journalctl --user -u arctis-manager -n 40 --no-pager 2>&1
+} > "$out" 2>&1
+
+echo "Bericht geschrieben: $out"
+echo "Zum Abholen:  scp $(hostname):$out .  (oder per SSH cat)"
