@@ -147,7 +147,9 @@ ssh lion 'TARGET_USER=lion bash /var/tmp/lion-restore/restore-home.sh'
 ```
 
 Das Skript korrigiert die NixOS-Eigenheiten für Arch: Umbriel-`autostart`,
-Firefox-Profil nach `~/.mozilla/firefox` samt `profiles.ini`, Profilbild,
+Firefox-Profil nach `~/.mozilla/firefox` samt `profiles.ini` **und
+`installs.ini`** (ohne `installs.ini` legt Firefox 67+ ein neues Profil an und
+ignoriert `lion`), Profilbild,
 tote `/nix/store`-Symlinks, Bedrock-Welten. Es braucht kein rsync (tar reicht)
 und läuft als `lion`, solange nichts root gehört.
 
