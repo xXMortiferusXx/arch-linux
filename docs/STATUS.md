@@ -79,7 +79,7 @@ Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 | `LAPTOP` | Legion-Akku-Limit (60 %) | 1 | 0 |
 | `SSHD` | SSH-Server | 0 | 1 |
 | `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 |
-| `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | – |
+| `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp |
 
 Der User bekommt immer `wheel,audio,video`; sysusers-Gruppen werden vor
 `useradd` angelegt (im Chroot existieren sie sonst nicht).
@@ -145,7 +145,7 @@ kein Sunshine. Für ein Profil wären nötig: `GPU=intel` (neuer Pfad),
 | `gaming` (steam, gamescope, udev, scripts, sunshine) | Pakete, 99-gaming.rules, `game-performance`, Steam-Wrapper, LizardByte | ✅ |
 | `cachyos-tools` (zink-run, dlss-swapper) | `usr/local/bin` | ✅ |
 | `ausweis`, `zink-run` | `ausweisapp`, `zink-run` | ✅ |
-| `users/*` (Gruppen) | `settings.env` + `EXTRA_GROUPS` | ✅ |
+| `users/*` (Gruppen) | `settings.env` + `EXTRA_GROUPS` | ✅ (nex: input/scanner/lp, lion: scanner/lp/i2c) |
 | `home/*` (Dotfiles, Noctalia-State, `.face`) | `hosts/*/home` + AccountsService-Icon | ✅ |
 | `polkit` (Wheel + passwordless Greeter-Sync) | `rules.d/49-wheel`, `50-noctalia-sync` | ✅ |
 | `noctalia-greeter` | greetd + `/var/lib/noctalia-greeter/greeter.toml`, `getty@tty1` maskiert | ✅ |
