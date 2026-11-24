@@ -132,6 +132,21 @@ AMD/RADV (`mesa`, `vulkan-radeon`, `lib32-*`), radeonsi-Env, `scx_lavd`
 (Gaming-Modus), ddcutil/DDC-CI statt brightnessctl, `game-performance` mit
 Monitor-Helligkeit, Flatpak+Bazaar+Flathub, sshd (nur aus LAN), kein Sunshine.
 
+**Home-Backup vor der Neuinstallation (2026-11-24):**
+`nex:/home/mortiferus/backups/lion-pc/2026-11-24/` – 1,1 GB Benutzerdaten
+(Browser, Discord, Umbriel, Steam-Config/userdata, Bedrock-Welten,
+PrismLauncher-Instanzen, Keyrings, Bilder/Downloads). Enthalten sind
+`README.md`, `manifest.sha256`, `restore-home.sh` und `entfernt.txt`.
+Wiederherstellen nach der Installation:
+
+```bash
+rsync -aH /home/mortiferus/backups/lion-pc/2026-11-24/ lion@lion:/tmp/lion-restore/
+ssh -t lion 'sudo /tmp/lion-restore/restore-home.sh'
+```
+
+Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
+PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
+
 ### benny (geplant, noch nicht angelegt)
 Intel Ivy Bridge (i5-3xxx, HD 2500), Arctis GameDAC (Arctis Sound Manager,
 benny-only!), Flatpak, DNS 192.168.178.1 (FritzBox), Realtek-r8169-Resume-Fix,
