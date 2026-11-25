@@ -1,4 +1,4 @@
-# Host-Profil `benny` (vorbereitet, **ungetestet**)
+# Host-Profil `benny` (in QEMU getestet, Hardware offen)
 
 Desktop von Benny: Intel i5-3xxx (Ivy Bridge), HD 2500/4000, Arctis Pro +
 GameDAC Gen1, Cloud-Gaming. Steht **nicht** im eigenen LAN (DynDNS, Zugriff
@@ -51,6 +51,12 @@ die NixOS-Config ist derzeit nicht testbar.
 - **I2C=1** (anders als der alte Plan in `docs/STATUS.md` mit `I2C=0`): die
   NixOS-Config gibt Benny `i2c`-Gruppe, udev-Regel und `ddcutil`.
 - **SSH oeffentlich**: bewusst, weil Benny nicht im eigenen Netz steht.
+
+## QEMU-Test (2026-11-25) – bestanden
+Kompletter Lauf inkl. `post.sh`: Edge, ASM-Fork `1.4.27+fork.3` und
+Boosteroid gebaut/installiert; Home `benny:benny 750`, SSH per Key,
+keine failed units, `[multilib]` aktiv. Drei Installer-Bugs dabei gefunden
+und gefixt (siehe `docs/arch-fix.md` §10).
 
 ## Vor dem ersten echten Einsatz testen
 

@@ -199,7 +199,7 @@ unter `scripts/lion-home-restore.sh`.
 Nicht im Backup: Spiele/Runtimes (Steam `steamapps`, Proton, Bedrock-Runtime,
 PrismLauncher-`assets`), Caches sowie `/etc/nixos` (eigenes Repo).
 
-### benny (Profil vorbereitet, auf Hardware **ungetestet**)
+### benny (in QEMU **getestet**, Hardware-Test offen)
 
 Desktop bei Benny, **nicht** im eigenen LAN (DynDNS, Zugriff von `nex`).
 Intel Ivy Bridge (i5-3xxx, HD 2500/4000), Arctis Pro + GameDAC Gen1,
@@ -221,6 +221,10 @@ Cloud-Gaming (Edge/Boosteroid), Flatpak, DNS `192.168.178.1` (FritzBox).
   `hosts/benny/pkgbuilds/`. Dazu `asm-verify` auf dem Host für
   Remote-Diagnose (Sinks, Kanal-Layout, Streams, Journal).
 - Details und Testliste: `hosts/benny/README.md`.
+- **QEMU-Test 2026-11-25:** kompletter Durchlauf inkl. `post.sh` grün –
+  Edge, ASM-Fork `1.4.27+fork.3`, Boosteroid installiert; Home `benny:benny 750`,
+  SSH per Key, keine failed units, `[multilib]` aktiv. Dabei drei
+  Installer-Bugs gefunden und behoben (`docs/arch-fix.md` §10).
 
 Quelle der Werte: `nix-config` (`hosts/benny`, `modules/hardware/*`,
 `modules/home/benny`). Dort wurde **nichts** geändert – die NixOS-Config ist
