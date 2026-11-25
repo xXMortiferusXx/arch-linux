@@ -8,7 +8,8 @@
 set -uo pipefail
 
 TARGET="${1:-/mnt}"
-REPO_DIR="${2:-.}"
+# arch-chroot kann /tmp ueberdecken -> Builds liegen unter /var/tmp (persistent)
+REPO_DIR="$(cd "${2:-.}" 2>/dev/null && pwd || printf '%s' "${2:-.}")"
 USER_NAME=benny
 PROBLEMS=0
 
@@ -30,22 +31,22 @@ fi
 aur_install() {
   local pkg="$1"
   log "AUR: baue $pkg"
+  arch-chroot "$TARGET" rm -rf "/var/tmp/aur-$pkg"
   if ! arch-chroot "$TARGET" runuser -u "$USER_NAME" -- \
       env HOME="/home/$USER_NAME" bash -c "
         set -euo pipefail
-        rm -rf /tmp/aur-$pkg
-        git clone --depth=1 https://aur.archlinux.org/$pkg.git /tmp/aur-$pkg
-        cd /tmp/aur-$pkg
+        git clone --depth=1 https://aur.archlinux.org/$pkg.git /var/tmp/aur-$pkg
+        cd /var/tmp/aur-$pkg
         makepkg --noconfirm --nodeps --nocheck
       "; then
     warn "AUR-Build fehlgeschlagen: $pkg"
     return 1
   fi
-  if ! arch-chroot "$TARGET" bash -c "pacman -U --noconfirm /tmp/aur-$pkg/*.pkg.tar.zst"; then
+  if ! arch-chroot "$TARGET" bash -c "pacman -U --noconfirm /var/tmp/aur-$pkg/*.pkg.tar.zst"; then
     warn "AUR-Installation fehlgeschlagen: $pkg"
     return 1
   fi
-  arch-chroot "$TARGET" rm -rf "/tmp/aur-$pkg"
+  arch-chroot "$TARGET" rm -rf "/var/tmp/aur-$pkg"
   log "$pkg installiert"
 }
 
@@ -57,24 +58,30 @@ local_pkgbuild_install() {
     warn "PKGBUILD-Verzeichnis fehlt: $src"
     return 1
   fi
-  arch-chroot "$TARGET" rm -rf "/tmp/build-$name"
-  cp -a "$src" "$TARGET/tmp/build-$name"
-  arch-chroot "$TARGET" chown -R "$USER_NAME:$USER_NAME" "/tmp/build-$name"
+  src="$(cd "$src" && pwd)" || { warn "PKGBUILD-Pfad unlesbar: $1"; return 1; }
+  arch-chroot "$TARGET" rm -rf "/var/tmp/build-$name"
+  install -d -m 1777 "$TARGET/var/tmp"
+  cp -a "$src" "$TARGET/var/tmp/build-$name"
+  if [ ! -d "$TARGET/var/tmp/build-$name" ]; then
+    warn "Kopie des PKGBUILD fehlgeschlagen: $name"
+    return 1
+  fi
+  arch-chroot "$TARGET" chown -R "$USER_NAME:$USER_NAME" "/var/tmp/build-$name"
   log "PKGBUILD: baue $name"
   if ! arch-chroot "$TARGET" runuser -u "$USER_NAME" -- \
       env HOME="/home/$USER_NAME" bash -c "
         set -euo pipefail
-        cd /tmp/build-$name
+        cd /var/tmp/build-$name
         makepkg --noconfirm --nodeps --nocheck
       "; then
     warn "Build fehlgeschlagen: $name"
     return 1
   fi
-  if ! arch-chroot "$TARGET" bash -c "pacman -U --noconfirm /tmp/build-$name/*.pkg.tar.zst"; then
+  if ! arch-chroot "$TARGET" bash -c "pacman -U --noconfirm /var/tmp/build-$name/*.pkg.tar.zst"; then
     warn "Installation fehlgeschlagen: $name"
     return 1
   fi
-  arch-chroot "$TARGET" rm -rf "/tmp/build-$name"
+  arch-chroot "$TARGET" rm -rf "/var/tmp/build-$name"
   log "$name installiert"
 }
 
