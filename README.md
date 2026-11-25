@@ -65,6 +65,42 @@ Die ISO enthält zusätzlich eine eingebettete Repo-Kopie als Offline-Fallback.
 - `hosts/<name>/post.sh` für Dinge, die kein Paket/Config sind
   (chaotic-Pakete, AUR-Builds, z. B. Arctis Sound Manager für benny)
 
+## Sicherheit & Rollback (Snapper)
+
+NixOS kennt atomare Generationen und Rollback per Boot-Menü. Der Arch-Port
+bildet das mit **btrfs + snapper** nach:
+
+- **snap-pac** legt bei **jedem `pacman`-Lauf** (Install, Update, Remove)
+  ein **Pre/Post-Snapshot-Paar** an – analog zu einer neuen Generation.
+- **snapper** läuft auf `/` (Subvolumen `@`): `NUMBER_LIMIT=10`,
+  `NUMBER_LIMIT_IMPORTANT=5`, Timeline aus, `snapper-cleanup.timer` aktiv.
+- **grub-btrfs** + `snapper-support` hängen die Snapshots als
+  **Booteinträge ins GRUB-Menü** (schreibgeschützt bootbar);
+  `grub-btrfsd.service` und `grub-btrfs-snapper.path` sind aktiv.
+- Mitglieder der Gruppe `wheel` dürfen Snapshots ohne `sudo` auflisten
+  (`ALLOW_GROUPS="wheel"`).
+
+Zurückrollen:
+
+```bash
+snapper -c root list                 # Snapshots ansehen (geht als wheel-User)
+# Variante A: im GRUB-Menü den Snapshot booten, prüfen, dann:
+sudo snapper -c root rollback <N>    # Snapshot wird neuer Standard
+sudo reboot
+# Variante B: nur Dateien zurücknehmen (ohne Neustart):
+sudo snapper -c root undo <N>
+```
+
+Bewusste Grenzen:
+
+- Gesichert wird **nur `/`**. `/home`, `/gaming` und `/var/*` sind eigene
+  Subvolumes und bleiben bei einem Rollback unangetastet.
+- Snapshots sind **kein Backup** – sie liegen auf derselben Platte. Für Daten
+  gilt weiterhin ein echtes Backup (z. B. das Lion-Home-Backup auf `nex`).
+
+Damit ist der NixOS-Effekt da: Ein kaputtes Update lässt sich auf den Stand
+davor zurückdrehen, inklusive Boot über den Snapshot im GRUB-Menü.
+
 ## Struktur
 
 ```
