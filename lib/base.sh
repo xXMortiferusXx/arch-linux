@@ -200,11 +200,16 @@ configure_base() {
   fi
   if [ -d "$profile/home" ]; then
     cp -a "$profile/home/." "$TARGET/home/$username/"
-    arch-chroot "$TARGET" chown -R "$username:$username" "/home/$username"
-    # cp -a uebernimmt auch den Modus des Quellverzeichnisses -> zuruecksetzen
-    chmod 750 "$TARGET/home/$username"
     ui_ok "Home-Configs kopiert (shared + Host)"
   fi
+  # WICHTIG: `cp -a src/. dest/` uebernimmt auch die Attribute des
+  # QUELLVERZEICHNISSES auf dest. Ohne diesen Reset gehoert /home/<user>
+  # root:root (bzw. uid 1000 aus dem Repo-Checkout) und ist gruppen-
+  # schreibbar -> uv/makepkg scheitern mit "Permission denied" und sshd
+  # (StrictModes) verweigert authorized_keys. Gilt auch fuer Hosts ohne
+  # eigenes home/ (z.B. benny).
+  arch-chroot "$TARGET" chown -R "$username:$username" "/home/$username"
+  chmod 750 "$TARGET/home/$username"
 
   ui_ok "Grundkonfiguration ($host, $tz, $keymap)"
 }
