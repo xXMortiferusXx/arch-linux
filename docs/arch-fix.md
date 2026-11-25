@@ -810,3 +810,64 @@ Git: `git revert` des Umbau-Commits.
   oder Engine-Panning übernimmt die Ortung.
 - SURR/BASS/TREBLE bleiben Geräte-seitig; „aus" ist weiterhin kein Bypass.
 - Hi-Res bleibt global 48k (PipeWire-Graph), unabhängig vom Profil.
+
+---
+
+## 10. QEMU-Test `benny` und drei Installer-Bugs (2026-11-25)
+
+Test: `hosts/benny` auf 30-GB-qcow2, UEFI, serielle Konsole, kompletter
+Durchlauf inkl. `post.sh` (Edge, ASM-Fork, Boosteroid). Dabei drei Fehler
+gefunden, die auch **lion-pc** bzw. bestehende Installationen betreffen.
+
+### 10.1 `arch-chroot` maskiert `/tmp`
+AUR- und lokale PKGBUILD-Builds liefen unter `/tmp`:
+
+```
+chown: cannot access '/tmp/build-arctis-sound-manager-fork'
+error: '/tmp/aur-boosteroid/*.pkg.tar.zst': could not find or read package
+```
+
+`arch-chroot` überdeckt `/tmp`; das Host-Skript sieht ein anderes Verzeichnis
+als der Build im Chroot. Fix: Builds liegen unter **`/var/tmp/<name>`**
+(persistent, nicht maskiert). `REPO_DIR` wird absolut aufgelöst und die Kopie
+verifiziert.
+
+### 10.2 `cp -a src/. dest/` überschreibt die Attribute von `dest`
+`cp -a shared/home/. /home/<user>/` setzt Besitzer/Modus von `dest` auf die
+des **Quellverzeichnisses**. Der Reset stand nur im `profile/home`-Zweig –
+bei Hosts ohne eigenes `home/` (benny) blieb `/home/benny` deshalb
+`root:root 775`.
+
+Folgen:
+- `uv`/`makepkg`: `Permission denied` beim Cache (`~/.cache/uv`)
+- `sshd` (StrictModes): `authorized_keys` wird verweigert →
+  `Permission denied (publickey)`, obwohl der Key stimmt
+
+Fix: `chown -R user:user` + `chmod 750` passieren jetzt **immer** nach dem
+Kopieren von `shared/home` und `profile/home`.
+
+### 10.3 multilib nur im Live-System aktiviert
+`enable_multilib` lief nur auf dem Live-System (für pacstrap). Die
+`pacman.conf` im Ziel kommt frisch aus dem `pacman`-Paket, dort ist
+`[multilib]` auskommentiert. Ergebnis: lib32-Pakete sind installiert, aber
+das Repo ist auf dem Zielsystem **aus** – Steam-Updates würden brechen.
+
+Fix: `enable_multilib "$TARGET/etc/pacman.conf"` zusätzlich nach pacstrap.
+
+Bestehende Systeme (lion) nachziehen:
+```bash
+sudo sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+grep -A2 '^\[multilib\]' /etc/pacman.conf
+```
+`nex` wurde live bereits umgestellt.
+
+### Ergebnis (nach den Fixes)
+- `post.sh`: „alles installiert" ohne Warnung
+  (Edge, `arctis-sound-manager 1.4.27+fork.3`, `boosteroid 1.10.24`)
+- Home `benny:benny 750`, SSH-Login per Key funktioniert
+- `systemctl --failed`: leer; sshd/greetd/NetworkManager aktiv,
+  `nftables` enabled (oneshot, `inactive (dead)` ist normal)
+- `vulkan-intel`, `libva-intel-driver`, `lib32-*` installiert;
+  `[multilib]` aktiv
+- ASM-User-Units vorhanden und per Wants-Symlink aktiviert
+- `/gaming` als btrfs-Subvolume, Flatpak/Flathub inkl. Key-Refresh-Timer
