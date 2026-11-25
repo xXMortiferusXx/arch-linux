@@ -1,0 +1,14 @@
+[Unit]
+Description=GC7: 2-Kanal-Profil + Voice-Sink (ChatMix)
+After=pipewire.service wireplumber.service
+Wants=pipewire.service wireplumber.service
+PartOf=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/gc7-2ch-setup
+
+[Install]
+WantedBy=default.target

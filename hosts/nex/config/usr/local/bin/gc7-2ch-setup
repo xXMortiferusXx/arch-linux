@@ -1,0 +1,42 @@
+#!/bin/sh
+# GC7: 2-Kanal-Profil + separater Voice-Sink fuer ChatMix.
+#
+# Hintergrund: Im pro-audio-Profil liefert der GC7 zwei Playback-PCMs
+# (Game 8ch, Voice 2ch), aber die 8ch fuehren bei SURR=0 zu einem
+# blechernen Side-Collapse. Im analog-stereo-Profil ist der Ton sauber,
+# aber PipeWire legt nur das erste PCM frei. Dieses Skript oeffnet das
+# zweite PCM (hw:<card>,1) als eigenen Sink "gc7_chat" - damit mischt der
+# GameVoice-Knopf wieder Game gegen Voice, ohne 8ch.
+set -u
+
+CARD="alsa_card.usb-Creative_Technology_Ltd_Sound_Blaster_GC7_D56CB9C7B0D55DB9-03"
+
+# Karte abwarten (Boot/Resume)
+i=0
+while [ "$i" -lt 40 ]; do
+  grep -q 'GC7' /proc/asound/cards 2>/dev/null && break
+  i=$((i + 1)); sleep 0.25
+done
+
+IDX=$(awk '/\[GC7[ ]*\]/{print $1}' /proc/asound/cards 2>/dev/null | head -1)
+if [ -z "${IDX:-}" ]; then
+  echo "gc7-2ch-setup: GC7 nicht gefunden" >&2
+  exit 0
+fi
+
+# 1) Stereo-Duplex-Profil (2ch Game + Mikro)
+pactl set-card-profile "$CARD" output:analog-stereo+input:analog-stereo 2>/dev/null || true
+
+i=0
+while [ "$i" -lt 40 ]; do
+  pactl list short sinks 2>/dev/null | grep -q 'Sound_Blaster_GC7.*analog-stereo' && break
+  i=$((i + 1)); sleep 0.25
+done
+
+# 2) Voice-Sink auf dem zweiten PCM anlegen (ChatMix-Gegenstueck)
+if ! pw-cli list-objects Node 2>/dev/null | grep -q 'node.name = "gc7_chat"'; then
+  pw-cli create-node adapter '{ factory.name = api.alsa.pcm.sink node.name = "gc7_chat" node.description = "GC7 Voice (Chat)" media.class = Audio/Sink object.linger = true api.alsa.path = "hw:'"$IDX"',1" audio.channels = 2 audio.position = [ FL FR ] }' >/dev/null 2>&1 || true
+fi
+
+# 3) Default-Sink bleibt die EQ-Kette (Game)
+pactl set-default-sink effect_input.gc7_eq 2>/dev/null || true

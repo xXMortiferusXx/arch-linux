@@ -239,7 +239,7 @@ eigenes Repo.
 | `legion` (Akku 60 %, iwlmvm, irqbalance, µcode) | Unit+Skript, modprobe, `amd-ucode` | ✅ |
 | `bpftune` (Netzwerk-Auto-Tuning) | `bpftune-git` (chaotic) + `bpftune.service` | ✅ |
 | `touchpad` | `touchpad-toggle` + udev | ✅ |
-| `audio-gc7` | PipeWire/WirePlumber/udev/`gc7-reset` | ✅ (pro-audio + param_eq live geprüft) |
+| `audio-gc7` | PipeWire/WirePlumber/udev/`gc7-reset` | ✅ (2ch + `gc7_chat`-Sink, ChatMix live geprüft) |
 | `gaming` (steam, gamescope, udev, scripts, sunshine, faugus) | Pakete, 99-gaming.rules, `game-performance`, Steam-Wrapper, LizardByte, `cap_sys_nice`, `FAUGUS` | ✅ |
 | `cachyos-tools` (zink-run, dlss-swapper) | `usr/local/bin` | ✅ |
 | `ausweis`, `zink-run` | `ausweisapp`, `zink-run`, Ports 24727 (wlan0/eno1) | ✅ |

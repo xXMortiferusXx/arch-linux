@@ -750,3 +750,63 @@ Dazu ist das NVRAM zu 93 % voll – ein erzwungener Schreibversuch
 `fwupdmgr update`. Nötigen Puffer schafft am ehesten ein BIOS-Update
 (Lenovo, räumt den Variablenspeicher neu auf) – für 82JU derzeit keins
 verfügbar.
+
+---
+
+## 9. GC7 auf 2-Kanal umgebaut (2026-11-25, nex)
+
+### Warum
+Im `pro-audio`-Profil liefert der GC7 zwei Playback-PCMs (Game bis 8ch,
+Voice 2ch). SURR lässt sich am Gerät nicht abschalten; bei SURR=0 werden die
+8 Kanäle auf Front kollabiert, was bei Side L/R hörbar „blechern" klingt.
+Für ein Stereo-Headset (MMX 330 Pro) ist 8ch ohnehin nicht nötig – die Ortung
+kommt aus der Spiel-Engine.
+
+### Was jetzt läuft
+- **Profil:** `output:analog-stereo+input:analog-stereo` (2ch Game + Mikro),
+  erzwungen über `device.profile.priority.rules` in `90-gc7.conf`.
+- **EQ-Kette:** 2 Kanäle statt 8, Ziel ist der `analog-stereo`-Node
+  (`99-gc7-eq.conf`).
+- **Voice-Sink:** neues Skript `gc7-2ch-setup` öffnet das zweite PCM
+  (`hw:<card>,1`) als eigenen Sink **`gc7_chat`** über
+  `api.alsa.pcm.sink`. Damit hat der GameVoice-Knopf wieder zwei Ströme zum
+  Mischen (Game = analog-stereo, Voice = gc7_chat).
+- **Autostart:** `gc7-2ch.service` (systemd *user*, `default.target`) setzt
+  Profil, legt den Voice-Sink an und lässt `effect_input.gc7_eq` als
+  Default-Sink stehen.
+- **Discord** muss auf **GC7 Voice (Chat)** geroutet werden.
+
+### Dateien
+| Datei | Zweck |
+|---|---|
+| `hosts/nex/config/etc/pipewire/pipewire.conf.d/99-gc7-eq.conf` | 2ch-EQ-Kette → analog-stereo |
+| `hosts/nex/config/etc/wireplumber/wireplumber.conf.d/90-gc7.conf` | Profil-Priorität + Node-Props |
+| `hosts/nex/config/usr/local/bin/gc7-2ch-setup` | Profil + Voice-Sink |
+| `hosts/nex/config/etc/systemd/user/gc7-2ch.service` | Start beim Login |
+
+### Verifiziert
+```
+pactl list short sinks
+  39  effect_input.gc7_eq       2ch  (default)
+  68  ...GC7....analog-stereo   2ch  (Game)
+  92  gc7_chat                  2ch  (Voice)
+```
+`pw-link -l`: EQ-Ausgang FL/FR → GC7 `analog-stereo` FL/FR.
+Test mit zwei Tönen (440 Hz Game / 880 Hz Chat): beide gleichzeitig hörbar,
+GameVoice-Knopf verschiebt die Balance (bestätigt 2026-11-25).
+
+### Rollback
+```bash
+sudo cp /etc/pipewire/pipewire.conf.d/99-gc7-eq.conf.bak-2026-11-25 ...
+sudo cp /etc/wireplumber/wireplumber.conf.d/90-gc7.conf.bak-2026-11-25 ...
+systemctl --user disable --now gc7-2ch.service
+pactl set-card-profile alsa_card.usb-…-03 pro-audio
+systemctl --user restart pipewire pipewire-pulse wireplumber
+```
+Git: `git revert` des Umbau-Commits.
+
+### Grenzen
+- Kein 8ch/Surround-Einspeisung mehr – Spiele senden Stereo; In-Game-HRTF
+  oder Engine-Panning übernimmt die Ortung.
+- SURR/BASS/TREBLE bleiben Geräte-seitig; „aus" ist weiterhin kein Bypass.
+- Hi-Res bleibt global 48k (PipeWire-Graph), unabhängig vom Profil.
