@@ -23,8 +23,11 @@ pacstrap_base() {
 
   pacstrap -K "$TARGET" base linux linux-firmware "${pkgs[@]}"
 
-  # Zielsystem: gleiche Einstellung dauerhaft
+  # Zielsystem: gleiche Einstellungen dauerhaft. enable_multilib muss auch
+  # HIER laufen: oben wird nur das Live-System aktiviert (pacstrap nutzt es),
+  # die pacman.conf im Ziel kommt aber frisch aus dem pacman-Paket.
   set_parallel_downloads "$TARGET/etc/pacman.conf"
+  enable_multilib "$TARGET/etc/pacman.conf"
   ui_ok "pacstrap: ${#pkgs[@]} Host-Pakete + Basis"
 }
 
@@ -48,12 +51,14 @@ set_parallel_downloads() {
 }
 
 # multilib ist Pflicht fuer Steam (32-bit) und lib32-Pakete.
+# Ohne Argument: Live-System (fuer pacstrap). Mit Pfad: Zielsystem.
 enable_multilib() {
-  if grep -q '^#\[multilib\]' /etc/pacman.conf; then
-    sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-    ui_ok "multilib aktiviert"
-  elif ! grep -q '^\[multilib\]' /etc/pacman.conf; then
-    die "multilib nicht in /etc/pacman.conf gefunden"
+  local conf="${1:-/etc/pacman.conf}"
+  if grep -q '^#\[multilib\]' "$conf"; then
+    sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' "$conf"
+    ui_ok "multilib aktiviert ($conf)"
+  elif ! grep -q '^\[multilib\]' "$conf"; then
+    die "multilib nicht in $conf gefunden"
   fi
 }
 
