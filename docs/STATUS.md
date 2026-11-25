@@ -368,6 +368,7 @@ arch-update         # interaktiver Updater (Tray + Timer laufen automatisch)
 game-performance <spiel>
 nvidia-offload <programm>      # oder prime-run
 gc7-reset                      # GC7 nach USB-Lock zurücksetzen
+systemctl --user restart gc7-2ch.service   # GC7: 2ch-Profil + Voice-Sink neu
 sudo nft list ruleset          # Firewall ansehen
 snapper -c root list           # Snapshots (nur @)
 systemctl list-timers          # Scrub/Balance/fstrim/snapper/arch-update
