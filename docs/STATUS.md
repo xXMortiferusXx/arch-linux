@@ -118,6 +118,29 @@ sudo ./scripts/build-iso.sh          # ~10 min, Ergebnis in iso/arch/out/
   ohne `iso/arch/out` und `.git`)
 - ISO-Namen enthalten Datum+Uhrzeit (kein Überschreiben einer laufenden VM)
 
+### Release-Upload (stabiler Link)
+
+Die jeweils aktuelle ISO liegt als GitHub-Release `iso-latest`:
+
+```
+https://github.com/xXMortiferusXx/arch-linux/releases/download/iso-latest/arch-install-latest.iso
+https://github.com/xXMortiferusXx/arch-linux/releases/download/iso-latest/arch-install-latest.iso.sha256
+```
+
+Nach jedem Build (`iso/arch/out/*.iso`) aktualisieren:
+
+```bash
+cp iso/arch/out/arch-install-<datum>.iso /var/tmp/arch-install-latest.iso
+( cd /var/tmp && sha256sum arch-install-latest.iso > arch-install-latest.iso.sha256 )
+gh release upload iso-latest /var/tmp/arch-install-latest.iso \
+  /var/tmp/arch-install-latest.iso.sha256 --clobber
+gh release edit iso-latest --notes "Version <datum> … SHA256 …"
+rm /var/tmp/arch-install-latest.iso*
+```
+
+Der Link bleibt gleich (Asset wird überschrieben). `gh` ist installiert
+(`github-cli`); Login `gh auth login --web`.
+
 ## 6. Hosts
 
 ### nex (Legion 5, Ryzen 5 5600H + RTX 3070 Mobile)
