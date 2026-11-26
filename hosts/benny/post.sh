@@ -155,6 +155,9 @@ else
   warn "Boosteroid-Abhaengigkeiten unvollstaendig"
 fi
 aur_install boosteroid || warn "Boosteroid nicht installiert"
+aur_install heroic-games-launcher-bin || warn "Heroic nicht installiert"
+aur_install naps2-bin || warn "NAPS2 nicht installiert"
+aur_install ookla-speedtest-bin || warn "Ookla-Speedtest nicht installiert"
 
 # --- Ergebnis --------------------------------------------------------------
 if [ "$PROBLEMS" -eq 0 ]; then

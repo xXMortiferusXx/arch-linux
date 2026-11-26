@@ -32,5 +32,7 @@ python-setuptools
 uv
 
 # --- Anwendungen (benny) --------------------------------------------------
-# microsoft-edge-stable-bin (chaotic) und boosteroid (AUR) kommen in post.sh,
-# weil chaotic erst nach pacstrap eingebunden wird.
+# microsoft-edge-stable-bin (chaotic) und die AUR-Pakete (boosteroid, heroic,
+# naps2, ookla-speedtest) kommen in post.sh, weil chaotic erst nach pacstrap
+# eingebunden wird bzw. AUR-Pakete nur ueber aur_install gebaut werden.
+retroarch
