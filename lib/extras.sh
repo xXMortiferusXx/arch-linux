@@ -128,8 +128,12 @@ CONF
   # (chaotic) liefert den passenden Path/Service dafuer.
   arch-chroot "$TARGET" pacman -S --needed --noconfirm grub-btrfs snapper-support \
     || die "grub-btrfs/snapper-support nicht installierbar"
+  # Nur der Daemon regeneriert das Menue: grub-btrfs-snapper.path wuerde
+  # parallel dieselbe Datei (/boot/grub/grub-btrfs.cfg) schreiben. Ergebnis
+  # auf benny (2026-11-26): "mv: cannot stat ... grub-btrfs.cfg" und eine
+  # fehlgeschlagene Unit, direkt nach jedem Snapshot (pacman/paru).
   arch-chroot "$TARGET" systemctl enable grub-btrfsd.service
-  arch-chroot "$TARGET" systemctl enable grub-btrfs-snapper.path
+  arch-chroot "$TARGET" systemctl disable grub-btrfs-snapper.path >/dev/null 2>&1 || true
 
   ui_ok "snapper: / (NUMBER_LIMIT=10), grub-btrfs (Snapshot-Booteintraege)"
 }

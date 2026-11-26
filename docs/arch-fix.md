@@ -923,3 +923,37 @@ sudo cat /dev/vcs1 | tr -d '\0'        # leer
 
 **Rückgängig:** `sudo kill -s RTMIN+20 1` (Statusmeldungen wieder an) und die
 beiden Drop-ins entfernen.
+
+## 12. grub-btrfs: doppelte Regenerierung → fehlgeschlagene Unit
+
+**Symptom (benny, 2026-11-26):** `systemctl --failed` zeigt
+`grub-btrfs-snapper.service`; im Journal nach jedem Paket-Update:
+
+```
+Starting Regenerate grub-btrfs.cfg...
+Detecting snapshots ...
+mv: der Aufruf von stat für '/boot/grub/grub-btrfs.cfg' ist nicht möglich:
+Datei oder Verzeichnis nicht gefunden
+Failed to start Regenerate grub-btrfs.cfg.
+```
+
+**Ursache:** Der Installer aktivierte **beide** Regeneratoren:
+- `grub-btrfsd.service` (Daemon, `--syslog`, überwacht `/.snapshots`)
+- `grub-btrfs-snapper.path` (`PathModified=/.snapshots` → eigener Service)
+
+Beide schreiben dieselbe Datei. Nach einem Snapshot (pacman/paru) laufen sie
+parallel, einer verliert das Rennen um den `mv`.
+
+**Fix:** nur der Daemon. `lib/extras.sh` aktiviert `grub-btrfsd.service` und
+deaktiviert `grub-btrfs-snapper.path`.
+
+Bestehende Systeme nachziehen:
+```bash
+sudo systemctl disable --now grub-btrfs-snapper.path
+sudo systemctl reset-failed grub-btrfs-snapper.service
+sudo systemctl restart grub-btrfsd
+systemctl --failed            # leer
+```
+
+Verifiziert auf benny: `sudo snapper -c root create -d test` →
+`grub-btrfs.cfg` wird neu erzeugt, kein Fehler. (Test-Snapshot danach löschen.)
