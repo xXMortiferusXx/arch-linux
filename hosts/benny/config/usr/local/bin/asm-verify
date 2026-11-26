@@ -52,4 +52,4 @@ for n in data:
 } > "$out" 2>&1
 
 echo "Bericht geschrieben: $out"
-echo "Zum Abholen:  scp $(hostname):$out .  (oder per SSH cat)"
+echo "Zum Abholen:  scp $(uname -n):$out .  (oder per SSH cat)"
