@@ -85,7 +85,7 @@ Werte aus der Umgebung haben Vorrang (`: "${VAR:=default}"`), z. B.
 | `SSHD` | SSH-Server | 0 | 1 | 1 (öffentlich, DynDNS) |
 | `I2C` | ddcutil (Monitor-Helligkeit), Gruppe `i2c` | 0 | 1 | 1 |
 | `EXTRA_GROUPS` | zusätzliche Gruppen | input scanner lp | scanner lp | – |
-| `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 | 0 |
+| `NOPASSWD_SUDO` | sudo ohne Passwortabfrage (`zzz-<user>-nopasswd`) | 1 | 0 | 1 |
 | `BEDROCK` | BedrockOnLinux-AppImage (Windows-Client, Xbox-Friends/Einladungen) | 0 | 1 | 0 |
 | `FAUGUS` | Faugus Launcher (chaotic) | 1 | 0 | 0 |
 | `ORCA` | OrcaSlicer (chaotic, `orca-slicer-bin`) | 1 | 0 | 0 |

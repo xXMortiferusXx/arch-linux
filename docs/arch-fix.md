@@ -353,8 +353,9 @@ Deshalb heißt die nex-Regel `zzz-mortiferus-nopasswd`. Weitere Fallstricke:
 - Prüfen mit `sudo visudo -c` (parst auch die Drop-ins, aber **nicht** die
   Reihenfolge) und `sudo -k; sudo -n true`.
 
-Im Installer: `NOPASSWD_SUDO=1` in `hosts/nex/settings.env` (lion: `0`),
-erzeugt in `lib/base.sh` direkt nach der `wheel`-Datei.
+Im Installer: `NOPASSWD_SUDO=1` in `hosts/nex/settings.env` und
+`hosts/benny/settings.env` (lion: `0`), erzeugt in `lib/base.sh` direkt nach
+der `wheel`-Datei.
 
 ---
 
@@ -457,6 +458,7 @@ automatisch korrekt – `auto_sync = true` übernimmt das beim Login und bei
 | `install.sh` | `umask 022` nach `set -Eeuo pipefail` |
 | `lib/base.sh` | Rechte-Normalisierung (`go-w`) nach den Overlay-`cp -a`-Aufrufen; `NOPASSWD_SUDO=1` erzeugt `zzz-<user>-nopasswd` |
 | `hosts/nex/settings.env` | `NOPASSWD_SUDO=1` (sudo ohne Passwort) |
+| `hosts/benny/settings.env` | `NOPASSWD_SUDO=1` (sudo ohne Passwort, Remotearbeit) |
 | `hosts/lion-pc/settings.env` | `NOPASSWD_SUDO=0` (lion behält die Abfrage) |
 | `lib/extras.sh` (`extras_keyring`) | PAM-Reihenfolge via `awk`, „schon vorhanden“-Guard entfernt |
 | `lib/extras.sh` (`extras_desktop`) | `noctalia-greeter passwordless-sync enable "$username"` im Chroot |
