@@ -155,6 +155,24 @@ else
   warn "Boosteroid-Abhaengigkeiten unvollstaendig"
 fi
 aur_install boosteroid || warn "Boosteroid nicht installiert"
+# Das Paket liefert nur 1.10.24. Der Client aktualisiert sich aber nur aus
+# $HOME (die Paket-Binary unter /usr/bin ist root-eigen). Deshalb die aktuelle
+# Version als Benutzer dort ablegen; der Starter /usr/local/bin/boosteroid
+# bevorzugt diese Kopie.
+bst_dir="/home/$USER_NAME/.local/share/Boosteroid Games S.R.L./Boosteroid"
+if arch-chroot "$TARGET" runuser -u "$USER_NAME" -- bash -c "
+      set -e
+      mkdir -p \"$bst_dir\"
+      curl -fsSL -A Mozilla -o /var/tmp/boosteroid.tar https://boosteroid.com/linux/installer/latest/boosteroid.tar
+      tar -xOf /var/tmp/boosteroid.tar Boosteroid > \"$bst_dir/Boosteroid.new\"
+      chmod 755 \"$bst_dir/Boosteroid.new\"
+      mv -f \"$bst_dir/Boosteroid.new\" \"$bst_dir/Boosteroid\"
+      rm -f /var/tmp/boosteroid.tar
+    "; then
+  log "Boosteroid aktuelle Version nach \$HOME kopiert"
+else
+  warn "Boosteroid-Kopie in \$HOME fehlgeschlagen"
+fi
 aur_install heroic-games-launcher-bin || warn "Heroic nicht installiert"
 aur_install naps2-bin || warn "NAPS2 nicht installiert"
 aur_install ookla-speedtest-bin || warn "Ookla-Speedtest nicht installiert"

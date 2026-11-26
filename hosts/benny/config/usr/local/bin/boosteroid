@@ -1,0 +1,9 @@
+#!/bin/sh
+# Boosteroid-Starter. Der Client aktualisiert sich nur, wenn er in $HOME liegt:
+# die Paket-Binary unter /usr/bin gehoert root, dort scheitert jedes Update.
+# Deshalb startet dieser Wrapper die Home-Kopie, falls vorhanden.
+user="$HOME/.local/share/Boosteroid Games S.R.L./Boosteroid/Boosteroid"
+if [ -x "$user" ]; then
+    exec "$user" "$@"
+fi
+exec /usr/bin/boosteroid "$@"
