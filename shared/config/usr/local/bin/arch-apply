@@ -7,6 +7,7 @@
 # Die Details (verwaltete Dateien, Backups, Restore) stehen in
 # bin/apply-config bzw. README.md.
 set -eu
+umask 022
 
 REPO="xXMortiferusXx/arch-linux"
 REF="${ARCH_REF:-main}"

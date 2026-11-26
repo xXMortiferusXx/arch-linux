@@ -89,6 +89,10 @@ add_file() {
   SRC["$dst"]="$src"; OWNER["$dst"]="$owner"
 }
 
+# Ziel-Modus: unabhaengig davon, ob die Quelle aus einem Git-Checkout (644/755)
+# oder einem GitHub-Tarball (664/775) kommt.
+desired_mode() { if [ -x "$1" ]; then echo 755; else echo 644; fi; }
+
 is_home_managed() {
   local rel="$1" p
   for p in "${HOME_PREFIXES[@]}"; do
@@ -132,7 +136,7 @@ CHANGED=()
 for dst in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do
   src="${SRC[$dst]}"
   if [ ! -e "$dst" ] \
-     || [ "$(stat -c %a "$src")" != "$(stat -c %a "$dst" 2>/dev/null || echo '?')" ] \
+     || [ "$(desired_mode "$src")" != "$(stat -c %a "$dst" 2>/dev/null || echo '?')" ] \
      || ! cmp -s "$src" "$dst"; then
     CHANGED+=("$dst")
   fi
@@ -193,7 +197,7 @@ case "$MODE" in
       echo "--- $(show_target "$dst")"
       if [ -e "$dst" ]; then
         if cmp -s "$dst" "${SRC[$dst]}"; then
-          echo "    (nur Rechte: $(stat -c %a "$dst") -> $(stat -c %a "${SRC[$dst]}"))"
+          echo "    (nur Rechte: $(stat -c %a "$dst") -> $(desired_mode "${SRC[$dst]}"))"
         else
           diff -u "$dst" "${SRC[$dst]}" | sed -n '1,80p' || true
         fi
@@ -263,7 +267,7 @@ apply_all() {
 
   for dst in "${CHANGED[@]}"; do
     src="${SRC[$dst]}"
-    mode="$(stat -c %a "$src")"
+    mode="$(desired_mode "$src")"
     if [ "${OWNER[$dst]}" = "user" ]; then
       uid="$(id -u "$HOME_USER")"; gid="$(id -g "$HOME_USER")"
       install -d -m 755 -o "$uid" -g "$gid" "$(dirname "$dst")"
