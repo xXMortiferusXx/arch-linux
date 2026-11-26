@@ -1,0 +1,38 @@
+#!/bin/sh
+# Wrapper um den Noctalia-Greeter.
+#
+# Beim Wechsel Greeter -> Session faellt die VT kurz auf die Textkonsole
+# zurueck, bevor der Compositor seinen ersten Frame zeichnet. Was in diesem
+# Moment im VT-Puffer steht, blitzt auf. Deshalb wird der Puffer direkt nach
+# dem Greeter-Ende geleert.
+#
+# Hauptursache sind PID1-Statuszeilen auf /dev/console ("Started Session ...",
+# "Removed session ..."), die genau in diesem Fenster entstehen. Die schaltet
+# /etc/systemd/system/greetd.service.d/10-clear-vt.conf ab (SIGRTMIN+21).
+#
+# greetd beendet den Greeter mit SIGTERM, sobald die Session angefordert wird;
+# deshalb wird das Signal abgefangen, das Kind beendet und danach geleert.
+set -u
+
+clear_vt() {
+    active="$(cat /sys/class/tty/tty0/active 2>/dev/null)" || active=""
+    [ -n "$active" ] || active="tty1"
+    [ -w "/dev/$active" ] && printf '\033[2J\033[H' > "/dev/$active" 2>/dev/null
+    return 0
+}
+
+child=0
+stop_greeter() {
+    [ "$child" -ne 0 ] && kill -TERM "$child" 2>/dev/null
+    [ "$child" -ne 0 ] && wait "$child" 2>/dev/null
+    clear_vt
+    exit 0
+}
+trap stop_greeter TERM INT HUP
+
+/usr/bin/noctalia-greeter-session "$@" &
+child=$!
+wait "$child"
+status=$?
+clear_vt
+exit "$status"

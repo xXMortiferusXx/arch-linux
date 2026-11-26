@@ -4,4 +4,13 @@
 # /usr/local/bin steht bei greetd/systemd vor /usr/bin, deshalb wird dieser
 # Wrapper fuer "Exec=start-umbriel" aus umbriel.desktop verwendet.
 # Debugging: /usr/bin/start-umbriel direkt aufrufen.
+#
+# Zusaetzlich wird die Textkonsole hier noch einmal geleert: auch wenn der
+# Greeter-Wrapper sie beim Beenden leert, koennen in der Luecke bis zum
+# Session-Start neue Meldungen ankommen. In der Session gehoert /dev/ttyN
+# bereits dem Benutzer (pam_systemd), daher ist der Write erlaubt.
+active="$(cat /sys/class/tty/tty0/active 2>/dev/null)" || active=""
+[ -n "$active" ] || active="tty1"
+[ -w "/dev/$active" ] && printf '\033[2J\033[H' > "/dev/$active" 2>/dev/null
+
 exec /usr/bin/start-umbriel "$@" >/dev/null 2>&1

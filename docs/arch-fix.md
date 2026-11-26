@@ -871,3 +871,53 @@ grep -A2 '^\[multilib\]' /etc/pacman.conf
   `[multilib]` aktiv
 - ASM-User-Units vorhanden und per Wants-Symlink aktiviert
 - `/gaming` als btrfs-Subvolume, Flatpak/Flathub inkl. Key-Refresh-Timer
+
+## 11. VT blitzt beim Login auf (Greeter → Session)
+
+**Symptom:** Nach dem Login sind ca. eine Sekunde lang Boot-/Statusmeldungen
+zu sehen, bevor Umbriel zeichnet.
+
+**Messung (nex, 2026-11-26)** – Journal-Zeitstempel um den Login:
+
+| Zeit | Ereignis |
+|---|---|
+| 15.604 | Greeter bestätigt `start_session`, zeichnet nicht mehr |
+| 15.769 | PAM-Session des Greeters geschlossen → VT fällt auf Textmodus zurück |
+| 15.771 | PID1: `session-5.scope: Deactivated successfully` (auf `/dev/console`) |
+| 15.797 | PID1: `Started Session 7 of User mortiferus` (auf `/dev/console`) |
+| 15.894 | Umbriel startet, übernimmt logind/DRM |
+| 16.842 | erster Frame (10-bit SDR, eDP-1) |
+
+Die Textkonsole ist also rund eine Sekunde sichtbar – und PID1 schreibt genau
+in diesem Fenster seine Statuszeilen auf `/dev/console` (= tty1). **Das** ist
+der Inhalt, der aufblitzt, nicht das Boot-Log (der Puffer wird beim
+Greeter-Start bereits geleert).
+
+**Kein TTY-Unterschied zu NixOS:** nixpkgs setzt `terminal.vt = 1`
+(`nixos/modules/services/display-managers/greetd.nix`), der greetd-Default für
+`switch` ist `true` – identisch zur Arch-Config. Der Greeter läuft auf beiden
+Systemen auf VT1.
+
+**Fix:**
+1. `/etc/systemd/system/greetd.service.d/10-clear-vt.conf`
+   - `ExecStartPre=kill -s RTMIN+21 1` → PID1-Statusausgabe auf der Konsole
+     aus (dokumentierter systemd-Schalter für `systemd.show_status`)
+   - `ExecStopPost=kill -s RTMIN+20 1` → beim Beenden von greetd wieder an
+   - zusätzlich VT-Puffer beim Greeter-Start leeren
+
+   Der Boot davor bleibt unverändert sichtbar (OK/WARN/FAIL), das Journal ist
+   nicht betroffen.
+2. `/etc/systemd/user/umbriel.service.d/20-clear-vt.conf` leert den VT-Puffer
+   als letzte Absicherung direkt vor und nach dem ersten Frame.
+3. Die Wrapper in `/usr/local/bin` (`noctalia-greeter-session`,
+   `start-umbriel`) leeren den Puffer zusätzlich beim Greeter-Ende bzw. vor
+   dem Session-Start.
+
+**Prüfen:**
+```bash
+systemctl show -p ShowStatus --value   # no (ab greetd-Start)
+sudo cat /dev/vcs1 | tr -d '\0'        # leer
+```
+
+**Rückgängig:** `sudo kill -s RTMIN+20 1` (Statusmeldungen wieder an) und die
+beiden Drop-ins entfernen.
