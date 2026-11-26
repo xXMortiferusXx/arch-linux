@@ -1,0 +1,19 @@
+# Outputs – benny (Intel Ivy Bridge, i965)
+# Anzeigenamen geprueft mit `umbriel outputs`:
+#   HDMI-A-3 = Iiyama PL2288H (links)
+#   VGA-1    = Samsung (rechts)
+# Konnektoren aendern sich, wenn Kabel an anderen Ports stecken: bei Bedarf neu pruefen.
+
+[output."HDMI-A-3"]
+mode = "1920x1080@60.000"    # Iiyama PL2288H, 60 Hz
+position = [0, 0]    # Haupt-Display links
+scale = 1.0
+workspaces = 4    # statische Workspaces wie in niri (1=Browser, 2=Chat, 3=Gaming, 4=Sonstiges)
+cyclic_workspaces = true
+
+[output."VGA-1"]
+mode = "1920x1080@60.000"    # Samsung, 60 Hz (analog, daher ohne bit_depth)
+position = [1920, 0]    # Neben-Display rechts
+scale = 1.0
+workspaces = 4
+cyclic_workspaces = true
