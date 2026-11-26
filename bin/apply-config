@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# apply-config – verwaltete Systemdateien aus dem Repo auf ein laufendes System
+# apply-config – verwaltete Dateien aus dem Repo auf ein laufendes System
 # bringen (Pendant zu "nixos-rebuild switch", aber nur fuer Configs).
 #
 #   sudo ./bin/apply-config --list      verwaltete Pfade zeigen
@@ -10,21 +10,34 @@
 #   sudo ./bin/apply-config --restore last
 #   sudo ./bin/apply-config --restore 2026-11-26_113000
 #
-# Bewusst NICHT enthalten: /home, /boot, Paket-DB, Kernel-Cmdline, Benutzer.
-# Es wird nie etwas geloescht; nur Dateien aus shared/config und
-# hosts/<host>/config werden geschrieben (Host gewinnt).
+# Verwaltet werden:
+#   * shared/config + hosts/<host>/config          -> /etc, /usr/local, /usr/share
+#   * shared/home + hosts/<host>/home, aber NUR die
+#     unten in HOME_PREFIXES gelisteten Pfade      -> ~ des aufrufenden Users
+#
+# Bewusst NICHT enthalten: restliches /home, /boot, Paket-DB, Kernel-Cmdline,
+# Benutzerverwaltung. Es wird nie etwas geloescht.
 set -Eeuo pipefail
 umask 022
 
-REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+REPO_DIR="${ARCH_REPO_DIR:-$(cd -- "$(dirname -- "$SELF")/.." && pwd)}"
 BACKUP_DIR="/var/backups/arch-config"
 STATE_DIR="/var/lib/arch-config"
 KEEP_BACKUPS=10     # Anzahl der aufbewahrten Backups
 KEEP_DAYS=90        # zusaetzlich: aelter als das wird geloescht
 
+# Home-Pfade, die als deklarativ gelten und mitverwaltet werden.
+# Alles andere unter home/ bleibt unangetastet (Nutzerdaten!).
+HOME_PREFIXES=(
+  ".config/umbriel/"
+)
+
 HOST="${HOST:-$(uname -n)}"
 MODE="apply"
 RESTORE_ARG=""
+HOME_USER="${SUDO_USER:-$(id -un)}"
+HOME_DIR=""
 
 info() { printf '  %s\n' "$*"; }
 ok()   { printf '  \033[32mOK\033[0m   %s\n' "$*"; }
@@ -32,10 +45,11 @@ warn() { printf '  \033[33mWARN\033[0m %s\n' "$*" >&2; }
 die()  { printf '  \033[31mFEHLER\033[0m %s\n' "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,20p' "$SELF" | sed 's/^# \{0,1\}//'
   echo
   echo "Optionen: --list --verify --status --dry-run --restore <last|stamp>"
-  echo "          --host <name>  (Standard: $(uname -n))"
+  echo "          --host <name>   (Standard: $(uname -n))"
+  echo "          --user <name>   (Home-Ziel, Standard: aufrufender User)"
 }
 
 while [ $# -gt 0 ]; do
@@ -46,57 +60,107 @@ while [ $# -gt 0 ]; do
     --dry-run) MODE="dry" ;;
     --restore) MODE="restore"; RESTORE_ARG="${2:-}"; shift ;;
     --host)    HOST="${2:-}"; shift ;;
+    --user)    HOME_USER="${2:-}"; shift ;;
     -h|--help) usage; exit 0 ;;
     *)         die "Unbekannte Option: $1" ;;
   esac
   shift
 done
 
-[ "$MODE" = "list" ] || [ "$MODE" = "status" ] || [ "$(id -u)" = 0 ] \
-  || die "Bitte mit sudo starten (nur --list/--status gehen ohne root)."
+# Nur --list kommt ohne root aus: /etc/polkit-1 u. a. sind fuer normale
+# Benutzer nicht lesbar, sonst entstehen Fehlalarme.
+if [ "$MODE" != "list" ] && [ "$(id -u)" != 0 ]; then
+  die "Bitte mit sudo starten (nur --list geht ohne root)."
+fi
 
 [ -d "$REPO_DIR/hosts/$HOST/config" ] \
   || die "Kein Host-Profil: hosts/$HOST/config fehlt (Hostname pruefen oder --host)"
 
-# --- verwaltete Dateien sammeln (Host ueberschreibt shared) ----------------
-declare -A SRC=()
-collect() {
+if [ -n "$HOME_USER" ]; then
+  HOME_DIR="$(getent passwd "$HOME_USER" | cut -d: -f6 || true)"
+fi
+
+# --- Sammlung: Zielpfad -> Quelle -----------------------------------------
+declare -A SRC=()     # Ziel (absolut) -> Quelle im Repo
+declare -A OWNER=()   # Ziel -> "root" oder "user"
+
+add_file() {
+  local src="$1" dst="$2" owner="$3"
+  SRC["$dst"]="$src"; OWNER["$dst"]="$owner"
+}
+
+is_home_managed() {
+  local rel="$1" p
+  for p in "${HOME_PREFIXES[@]}"; do
+    case "$rel" in "$p"*) return 0 ;; esac
+  done
+  return 1
+}
+
+collect_system() {
   local root="$1" rel
   [ -d "$root" ] || return 0
   while IFS= read -r rel; do
-    case "$rel" in
-      README.md|*/README.md) continue ;;   # Doku, gehoert nicht nach /
-    esac
+    case "$rel" in README.md|*/README.md) continue ;; esac
     case "/$rel" in
-      /etc/*|/usr/local/*|/usr/share/*) SRC["$rel"]="$root/$rel" ;;
+      /etc/*|/usr/local/*|/usr/share/*) add_file "$root/$rel" "/$rel" root ;;
       *) warn "uebersprungen (Pfad nicht erlaubt): /$rel" ;;
     esac
   done < <(cd "$root" && find . -type f -printf '%P\n' | LC_ALL=C sort)
 }
-collect "$REPO_DIR/shared/config"
-collect "$REPO_DIR/hosts/$HOST/config"
+
+collect_home() {
+  local root="$1" rel
+  [ -d "$root" ] || return 0
+  [ -n "$HOME_DIR" ] || return 0
+  while IFS= read -r rel; do
+    case "$rel" in README.md|*/README.md) continue ;; esac
+    is_home_managed "$rel" || continue
+    add_file "$root/$rel" "$HOME_DIR/$rel" user
+  done < <(cd "$root" && find . -type f -printf '%P\n' | LC_ALL=C sort)
+}
+
+collect_system "$REPO_DIR/shared/config"
+collect_system "$REPO_DIR/hosts/$HOST/config"
+collect_home   "$REPO_DIR/shared/home"
+collect_home   "$REPO_DIR/hosts/$HOST/home"
 
 [ "${#SRC[@]}" -gt 0 ] || die "Keine verwalteten Dateien gefunden"
 
 # --- Vergleich -------------------------------------------------------------
 CHANGED=()
-for rel in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do
-  src="${SRC[$rel]}"; dst="/$rel"
-  if [ ! -e "$dst" ] || ! cmp -s "$src" "$dst"; then
-    CHANGED+=("$rel")
+for dst in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do
+  src="${SRC[$dst]}"
+  if [ ! -e "$dst" ] \
+     || [ "$(stat -c %a "$src")" != "$(stat -c %a "$dst" 2>/dev/null || echo '?')" ] \
+     || ! cmp -s "$src" "$dst"; then
+    CHANGED+=("$dst")
   fi
 done
+
+show_target() {
+  # Achtung: kein "~" direkt als Ersatz benutzen - Bash würde es zum
+  # Home des ausfuehrenden Users (root) expandieren.
+  local p="$1" t="~"
+  if [ -n "$HOME_DIR" ]; then printf '%s\n' "${p/#$HOME_DIR/$t}"
+  else printf '%s\n' "$p"; fi
+}
 
 case "$MODE" in
   list)
     info "Host: $HOST   Repo: $REPO_DIR"
-    for rel in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do echo "/$rel"; done
+    [ -n "$HOME_DIR" ] && info "Home-Ziel: $HOME_USER ($HOME_DIR)"
+    for dst in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do show_target "$dst"; done
     echo "---- ${#SRC[@]} Dateien"
     exit 0
     ;;
   status)
     info "Host:        $HOST"
-    info "Repo-HEAD:   $(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
+    if git -C "$REPO_DIR" rev-parse --short HEAD >/dev/null 2>&1; then
+      info "Repo-HEAD:   $(git -C "$REPO_DIR" rev-parse --short HEAD)"
+    else
+      info "Repo-HEAD:   (kein Git-Checkout)"
+    fi
     if [ -f "$STATE_DIR/applied" ]; then
       IFS=$'\t' read -r c d n < "$STATE_DIR/applied" || true
       info "Angewendet:  ${c:-?}  (${d:-?}, ${n:-?} Dateien)"
@@ -107,7 +171,7 @@ case "$MODE" in
       ok "keine Abweichungen (${#SRC[@]} Dateien)"
     else
       warn "${#CHANGED[@]} von ${#SRC[@]} Dateien weichen ab:"
-      printf '    /%s\n' "${CHANGED[@]}"
+      for dst in "${CHANGED[@]}"; do printf '    %s\n' "$(show_target "$dst")"; done
       exit 1
     fi
     exit 0
@@ -118,22 +182,24 @@ case "$MODE" in
       exit 0
     fi
     warn "${#CHANGED[@]} von ${#SRC[@]} Dateien weichen ab:"
-    printf '    /%s\n' "${CHANGED[@]}"
+    for dst in "${CHANGED[@]}"; do printf '    %s\n' "$(show_target "$dst")"; done
     exit 1
     ;;
   dry)
     info "Host: $HOST"
-    if [ "${#CHANGED[@]}" -eq 0 ]; then
-      ok "keine Aenderungen"; exit 0
-    fi
-    for rel in "${CHANGED[@]}"; do
+    if [ "${#CHANGED[@]}" -eq 0 ]; then ok "keine Aenderungen"; exit 0; fi
+    for dst in "${CHANGED[@]}"; do
       echo
-      if [ -e "/$rel" ]; then
-        echo "--- /$rel"
-        diff -u "/$rel" "${SRC[$rel]}" | sed -n '1,80p' || true
+      echo "--- $(show_target "$dst")"
+      if [ -e "$dst" ]; then
+        if cmp -s "$dst" "${SRC[$dst]}"; then
+          echo "    (nur Rechte: $(stat -c %a "$dst") -> $(stat -c %a "${SRC[$dst]}"))"
+        else
+          diff -u "$dst" "${SRC[$dst]}" | sed -n '1,80p' || true
+        fi
       else
-        echo "--- /$rel (neu)"
-        sed -n '1,20p' "${SRC[$rel]}" | sed 's/^/    /'
+        echo "    (neu)"
+        sed -n '1,20p' "${SRC[$dst]}" | sed 's/^/    /'
       fi
     done
     echo
@@ -143,64 +209,22 @@ case "$MODE" in
 esac
 
 # --- anwenden --------------------------------------------------------------
-apply_all() {
-  local rel dst src mode
-  install -d -m 755 "$BACKUP_DIR" "$STATE_DIR"
-  prune_backups
-
-  if [ "${#CHANGED[@]}" -eq 0 ]; then
-    ok "bereits aktuell (${#SRC[@]} Dateien) – nichts zu tun"
-    record_state 0
-    return 0
-  fi
-
-  # Backup der Dateien, die ueberschrieben werden (nur bestehende)
-  local stamp list existing=()
-  stamp="$(date +%F_%H%M%S)"
-  list="$(mktemp)"
-  for rel in "${CHANGED[@]}"; do [ -e "/$rel" ] && existing+=("$rel"); done
-  if [ "${#existing[@]}" -gt 0 ]; then
-    printf '%s\n' "${existing[@]}" > "$list"
-    tar -C / -czf "$BACKUP_DIR/$stamp.tar.gz" -T "$list" \
-      || die "Backup fehlgeschlagen – nichts geaendert"
-    rm -f "$list"
-    info "Backup: $BACKUP_DIR/$stamp.tar.gz (${#existing[@]} Dateien)"
-  else
-    rm -f "$list"
-    info "kein Backup noetig (nur neue Dateien)"
-  fi
-
-  for rel in "${CHANGED[@]}"; do
-    src="${SRC[$rel]}"; dst="/$rel"
-    mode="$(stat -c %a "$src")"
-    install -D -m "$mode" -o 0 -g 0 "$src" "$dst"
-    echo "    /$rel"
-  done
-
-  systemctl daemon-reload || warn "daemon-reload fehlgeschlagen"
-  if [ -n "${SUDO_USER:-}" ] && [ -d "/run/user/$(id -u "$SUDO_USER")" ]; then
-    runuser -u "$SUDO_USER" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$SUDO_USER")" \
-      systemctl --user daemon-reload 2>/dev/null || true
-  fi
-  record_state "${#CHANGED[@]}"
-  ok "${#CHANGED[@]} Dateien angewendet"
-  info "Falls Dienste betroffen sind: betroffene Unit neu starten oder neu einloggen."
-}
-
 record_state() {
-  local n="$1"
-  printf '%s\t%s\t%s\n' \
-    "$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')" \
-    "$(date -Iseconds)" "$n" > "$STATE_DIR/applied"
+  local n="$1" ref
+  if git -C "$REPO_DIR" rev-parse --short HEAD >/dev/null 2>&1; then
+    ref="$(git -C "$REPO_DIR" rev-parse --short HEAD)"
+  else
+    ref="tarball:$(date +%F)"
+  fi
+  install -d -m 755 "$STATE_DIR"
+  printf '%s\t%s\t%s\n' "$ref" "$(date -Iseconds)" "$n" > "$STATE_DIR/applied"
 }
 
 prune_backups() {
   local f removed=0 count
-  # aelter als KEEP_DAYS
   while IFS= read -r f; do rm -f "$f"; removed=$((removed+1)); done < <(
     find "$BACKUP_DIR" -maxdepth 1 -name '*.tar.gz' -type f -mtime +"$KEEP_DAYS" 2>/dev/null
   )
-  # nur die letzten KEEP_BACKUPS behalten
   count=$(find "$BACKUP_DIR" -maxdepth 1 -name '*.tar.gz' -type f 2>/dev/null | wc -l)
   if [ "$count" -gt "$KEEP_BACKUPS" ]; then
     while IFS= read -r f; do rm -f "$f"; removed=$((removed+1)); done < <(
@@ -210,6 +234,54 @@ prune_backups() {
   fi
   [ "$removed" -gt 0 ] && info "alte Backups entfernt: $removed"
   return 0
+}
+
+apply_all() {
+  local dst src mode uid gid
+  install -d -m 755 "$BACKUP_DIR"
+  prune_backups
+
+  if [ "${#CHANGED[@]}" -eq 0 ]; then
+    ok "bereits aktuell (${#SRC[@]} Dateien) – nichts zu tun"
+    record_state 0
+    return 0
+  fi
+
+  local stamp list existing=()
+  stamp="$(date +%F_%H%M%S)"
+  list="$(mktemp)"
+  for dst in "${CHANGED[@]}"; do [ -e "$dst" ] && existing+=("${dst#/}"); done
+  if [ "${#existing[@]}" -gt 0 ]; then
+    printf '%s\n' "${existing[@]}" > "$list"
+    tar -C / -czf "$BACKUP_DIR/$stamp.tar.gz" -T "$list" \
+      || { rm -f "$list"; die "Backup fehlgeschlagen – nichts geaendert"; }
+    info "Backup: $BACKUP_DIR/$stamp.tar.gz (${#existing[@]} Dateien)"
+  else
+    info "kein Backup noetig (nur neue Dateien)"
+  fi
+  rm -f "$list"
+
+  for dst in "${CHANGED[@]}"; do
+    src="${SRC[$dst]}"
+    mode="$(stat -c %a "$src")"
+    if [ "${OWNER[$dst]}" = "user" ]; then
+      uid="$(id -u "$HOME_USER")"; gid="$(id -g "$HOME_USER")"
+      install -d -m 755 -o "$uid" -g "$gid" "$(dirname "$dst")"
+      install -m "$mode" -o "$uid" -g "$gid" "$src" "$dst"
+    else
+      install -D -m "$mode" -o 0 -g 0 "$src" "$dst"
+    fi
+    echo "    $(show_target "$dst")"
+  done
+
+  systemctl daemon-reload || warn "daemon-reload fehlgeschlagen"
+  if [ -n "${SUDO_USER:-}" ] && [ -d "/run/user/$(id -u "$SUDO_USER")" ]; then
+    runuser -u "$SUDO_USER" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$SUDO_USER")" \
+      systemctl --user daemon-reload 2>/dev/null || true
+  fi
+  record_state "${#CHANGED[@]}"
+  ok "${#CHANGED[@]} Dateien angewendet"
+  info "Umbriel/Noctalia lesen ihre Config beim Speichern neu; sonst neu einloggen."
 }
 
 restore_backup() {

@@ -124,9 +124,21 @@ sudo ./bin/apply-config --restore last   # letzten Apply zurückrollen
 - Vor jedem Schreiben: `tar.gz` der **überschriebenen** Dateien unter
   `/var/backups/arch-config/`; aufgeräumt beim nächsten Apply
   (10 Backups / 90 Tage, kein Timer).
-- Kein `/home`, kein `/boot`, keine Kernel-Cmdline, keine Pakete, keine
-  Benutzerverwaltung. `daemon-reload` läuft automatisch, Dienste werden
-  **nicht** neu gestartet.
+- Kein `/boot`, keine Kernel-Cmdline, keine Pakete, keine Benutzerverwaltung.
+  `daemon-reload` läuft automatisch, Dienste werden **nicht** neu gestartet.
+- **Home:** nur ausdrücklich deklarierte Pfade (`HOME_PREFIXES` im Skript),
+  aktuell `~/.config/umbriel/` – damit Umbriel-/Noctalia-Fixes nach einem
+  Umbriel-Update verteilt werden können. Alles andere im Home bleibt unberührt.
+- **Rechte** werden mitverwaltet (Modus aus dem Repo), damit z. B. 775/664 aus
+  alten Installationen auf 755/644 korrigiert werden.
+
+Ohne Repo-Checkout (lion-pc, benny) gibt es `arch-apply`: es holt `main` und
+ruft `apply-config` darauf auf.
+
+```bash
+sudo arch-apply --verify
+sudo arch-apply
+```
 
 ## Struktur
 

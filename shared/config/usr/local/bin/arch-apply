@@ -1,0 +1,29 @@
+#!/bin/sh
+# arch-apply – holt den aktuellen Stand des Repos (main) und ruft
+# apply-config darauf auf. Gedacht fuer Maschinen ohne Repo-Checkout
+# (lion-pc, benny):  sudo arch-apply [--verify|--dry-run|--status|--list ...]
+#
+# Mit ARCH_REF=<branch|tag> laesst sich ein anderer Stand ziehen.
+# Die Details (verwaltete Dateien, Backups, Restore) stehen in
+# bin/apply-config bzw. README.md.
+set -eu
+
+REPO="xXMortiferusXx/arch-linux"
+REF="${ARCH_REF:-main}"
+URL="https://github.com/${REPO}/archive/refs/heads/${REF}.tar.gz"
+
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT INT TERM HUP
+
+printf '  hole %s\n' "$URL"
+if ! curl -fsSL --max-time 60 "$URL" -o "$TMP/repo.tar.gz"; then
+    echo "  FEHLER: Download fehlgeschlagen (Netz?)" >&2
+    exit 1
+fi
+tar xzf "$TMP/repo.tar.gz" -C "$TMP"
+DIR="$(find "$TMP" -maxdepth 1 -type d -name 'arch-linux-*' | head -1)"
+[ -n "$DIR" ] || { echo "  FEHLER: unerwartetes Archiv" >&2; exit 1; }
+[ -x "$DIR/bin/apply-config" ] || chmod 755 "$DIR/bin/apply-config" 2>/dev/null || true
+
+export ARCH_REPO_DIR="$DIR"
+exec "$DIR/bin/apply-config" "$@"
