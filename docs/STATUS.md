@@ -379,6 +379,25 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
    Legion-Akku, Touchpad, Greeter-Sync (greift erst nach dem ersten Login).
 2. **Hardware-Test lion-pc** (AMD/RADV, DDC-CI, scx_lavd, Flatpak/Bazaar,
    Bazaar-Auto-Update, Flathub-Key-Refresh, BedrockOnLinux/Xbox-Friends).
+   - **Offen: Login-Handoff-Fix nachziehen** (lion war beim Einbau offline,
+     hat `3b8f878` also noch nicht live). Betrifft das Aufblitzen der
+     Bootmeldungen beim Wechsel Greeter → Umbriel, siehe
+     `docs/arch-fix.md` §11. Nach `git pull` im Repo:
+     ```bash
+     sudo install -D -m 644 \
+       shared/config/etc/systemd/system/greetd.service.d/10-clear-vt.conf \
+       /etc/systemd/system/greetd.service.d/10-clear-vt.conf
+     sudo install -D -m 644 \
+       shared/config/etc/systemd/user/umbriel.service.d/20-clear-vt.conf \
+       /etc/systemd/user/umbriel.service.d/20-clear-vt.conf
+     sudo install -m 755 shared/config/usr/local/bin/noctalia-greeter-session \
+       shared/config/usr/local/bin/start-umbriel /usr/local/bin/
+     sudo systemctl daemon-reload
+     systemctl --user daemon-reload
+     ```
+     Prüfen (nach einem Reboot): `systemctl show -p ShowStatus --value` → `no`,
+     `sudo cat /dev/vcs1` → leer, einmal aus-/einloggen → nichts blitzt auf.
+     Rückbau: `sudo kill -s RTMIN+20 1` + Drop-ins entfernen.
 3. **benny**: Entscheidung offen; Profil noch nicht angelegt (s. o.).
 4. **Nix-Skripte**: `audio-rate`, `mic-check` (nicht nötig, Werte stehen fest),
    `nvidia-track`, `boosteroid-track` – bei Bedarf neu bauen.
