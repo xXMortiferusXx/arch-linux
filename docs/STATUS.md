@@ -409,6 +409,12 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
      Prüfen (nach einem Reboot): `systemctl show -p ShowStatus --value` → `no`,
      `sudo cat /dev/vcs1` → leer, einmal aus-/einloggen → nichts blitzt auf.
      Rückbau: `sudo kill -s RTMIN+20 1` + Drop-ins entfernen.
+   - **Offen: grub-btrfs-Fix nachziehen** (siehe `docs/arch-fix.md` §12):
+     ```bash
+     sudo systemctl disable --now grub-btrfs-snapper.path
+     sudo systemctl reset-failed grub-btrfs-snapper.service
+     sudo systemctl restart grub-btrfsd
+     ```
 3. **benny**: Entscheidung offen; Profil noch nicht angelegt (s. o.).
 4. **Nix-Skripte**: `audio-rate`, `mic-check` (nicht nötig, Werte stehen fest),
    `nvidia-track`, `boosteroid-track` – bei Bedarf neu bauen.
