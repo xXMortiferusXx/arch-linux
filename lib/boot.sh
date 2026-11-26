@@ -75,7 +75,7 @@ GRUB_DEFAULT=0
 GRUB_TIMEOUT=10
 GRUB_TIMEOUT_STYLE=menu
 GRUB_DISTRIBUTOR="Arch"
-GRUB_CMDLINE_LINUX_DEFAULT="quiet systemd.show_status=0 loglevel=3 udev.log_level=3"
+GRUB_CMDLINE_LINUX_DEFAULT="loglevel=3 udev.log_level=3"
 GRUB_CMDLINE_LINUX="rootflags=subvol=@ ${extra_cmdline}"
 GRUB_PRELOAD_MODULES="part_gpt btrfs"
 GRUB_DISABLE_OS_PROBER=true
