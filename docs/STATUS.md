@@ -415,6 +415,14 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
 5. **ISO-Hosting** für Benny (Storage-Box-Unterkonto, read-only, `.sha256`).
 6. `nex` hat regulär **kein sshd** (nur lion/benny) – bei Tests `SSHD=1`
    voranstellen.
+7. **speedtest**: Python-`speedtest-cli` entfernt (`d43c5a7`, liefert
+   unbrauchbare Werte). NixOS hatte `ookla-speedtest`; auf nex ist
+   `ookla-speedtest-bin` (AUR, 1.2.0) live installiert. **Offen:**
+   - Einbindung in den Installer für alle Hosts – braucht einen gemeinsamen
+     AUR-Schritt (bisher nur benny mit `aur_install` in `post.sh`).
+   - lion-pc nachziehen, wenn online.
+   - Bennys ISO bringt das alte `speedtest-cli` noch mit → nach der
+     Installation einmal `sudo pacman -Rns speedtest-cli`.
 
 ## 12. Nützliche Befehle auf dem Zielsystem
 
