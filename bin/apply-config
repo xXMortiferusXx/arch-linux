@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# apply-config – verwaltete Systemdateien aus dem Repo auf ein laufendes System
+# bringen (Pendant zu "nixos-rebuild switch", aber nur fuer Configs).
+#
+#   sudo ./bin/apply-config --list      verwaltete Pfade zeigen
+#   sudo ./bin/apply-config --verify    nur vergleichen (Exit 1 bei Abweichung)
+#   sudo ./bin/apply-config --status    Repo-Stand, angewendeter Stand, Drift
+#   sudo ./bin/apply-config --dry-run   Aenderungen + Diff zeigen, nichts schreiben
+#   sudo ./bin/apply-config             anwenden (mit tar-Backup vorher)
+#   sudo ./bin/apply-config --restore last
+#   sudo ./bin/apply-config --restore 2026-11-26_113000
+#
+# Bewusst NICHT enthalten: /home, /boot, Paket-DB, Kernel-Cmdline, Benutzer.
+# Es wird nie etwas geloescht; nur Dateien aus shared/config und
+# hosts/<host>/config werden geschrieben (Host gewinnt).
+set -Eeuo pipefail
+umask 022
+
+REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKUP_DIR="/var/backups/arch-config"
+STATE_DIR="/var/lib/arch-config"
+KEEP_BACKUPS=10     # Anzahl der aufbewahrten Backups
+KEEP_DAYS=90        # zusaetzlich: aelter als das wird geloescht
+
+HOST="${HOST:-$(uname -n)}"
+MODE="apply"
+RESTORE_ARG=""
+
+info() { printf '  %s\n' "$*"; }
+ok()   { printf '  \033[32mOK\033[0m   %s\n' "$*"; }
+warn() { printf '  \033[33mWARN\033[0m %s\n' "$*" >&2; }
+die()  { printf '  \033[31mFEHLER\033[0m %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  echo
+  echo "Optionen: --list --verify --status --dry-run --restore <last|stamp>"
+  echo "          --host <name>  (Standard: $(uname -n))"
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --list)    MODE="list" ;;
+    --verify)  MODE="verify" ;;
+    --status)  MODE="status" ;;
+    --dry-run) MODE="dry" ;;
+    --restore) MODE="restore"; RESTORE_ARG="${2:-}"; shift ;;
+    --host)    HOST="${2:-}"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *)         die "Unbekannte Option: $1" ;;
+  esac
+  shift
+done
+
+[ "$MODE" = "list" ] || [ "$MODE" = "status" ] || [ "$(id -u)" = 0 ] \
+  || die "Bitte mit sudo starten (nur --list/--status gehen ohne root)."
+
+[ -d "$REPO_DIR/hosts/$HOST/config" ] \
+  || die "Kein Host-Profil: hosts/$HOST/config fehlt (Hostname pruefen oder --host)"
+
+# --- verwaltete Dateien sammeln (Host ueberschreibt shared) ----------------
+declare -A SRC=()
+collect() {
+  local root="$1" rel
+  [ -d "$root" ] || return 0
+  while IFS= read -r rel; do
+    case "$rel" in
+      README.md|*/README.md) continue ;;   # Doku, gehoert nicht nach /
+    esac
+    case "/$rel" in
+      /etc/*|/usr/local/*|/usr/share/*) SRC["$rel"]="$root/$rel" ;;
+      *) warn "uebersprungen (Pfad nicht erlaubt): /$rel" ;;
+    esac
+  done < <(cd "$root" && find . -type f -printf '%P\n' | LC_ALL=C sort)
+}
+collect "$REPO_DIR/shared/config"
+collect "$REPO_DIR/hosts/$HOST/config"
+
+[ "${#SRC[@]}" -gt 0 ] || die "Keine verwalteten Dateien gefunden"
+
+# --- Vergleich -------------------------------------------------------------
+CHANGED=()
+for rel in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do
+  src="${SRC[$rel]}"; dst="/$rel"
+  if [ ! -e "$dst" ] || ! cmp -s "$src" "$dst"; then
+    CHANGED+=("$rel")
+  fi
+done
+
+case "$MODE" in
+  list)
+    info "Host: $HOST   Repo: $REPO_DIR"
+    for rel in $(printf '%s\n' "${!SRC[@]}" | LC_ALL=C sort); do echo "/$rel"; done
+    echo "---- ${#SRC[@]} Dateien"
+    exit 0
+    ;;
+  status)
+    info "Host:        $HOST"
+    info "Repo-HEAD:   $(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
+    if [ -f "$STATE_DIR/applied" ]; then
+      IFS=$'\t' read -r c d n < "$STATE_DIR/applied" || true
+      info "Angewendet:  ${c:-?}  (${d:-?}, ${n:-?} Dateien)"
+    else
+      info "Angewendet:  noch nie"
+    fi
+    if [ "${#CHANGED[@]}" -eq 0 ]; then
+      ok "keine Abweichungen (${#SRC[@]} Dateien)"
+    else
+      warn "${#CHANGED[@]} von ${#SRC[@]} Dateien weichen ab:"
+      printf '    /%s\n' "${CHANGED[@]}"
+      exit 1
+    fi
+    exit 0
+    ;;
+  verify)
+    if [ "${#CHANGED[@]}" -eq 0 ]; then
+      ok "keine Abweichungen (${#SRC[@]} Dateien)"
+      exit 0
+    fi
+    warn "${#CHANGED[@]} von ${#SRC[@]} Dateien weichen ab:"
+    printf '    /%s\n' "${CHANGED[@]}"
+    exit 1
+    ;;
+  dry)
+    info "Host: $HOST"
+    if [ "${#CHANGED[@]}" -eq 0 ]; then
+      ok "keine Aenderungen"; exit 0
+    fi
+    for rel in "${CHANGED[@]}"; do
+      echo
+      if [ -e "/$rel" ]; then
+        echo "--- /$rel"
+        diff -u "/$rel" "${SRC[$rel]}" | sed -n '1,80p' || true
+      else
+        echo "--- /$rel (neu)"
+        sed -n '1,20p' "${SRC[$rel]}" | sed 's/^/    /'
+      fi
+    done
+    echo
+    info "${#CHANGED[@]} Dateien wuerden geschrieben"
+    exit 0
+    ;;
+esac
+
+# --- anwenden --------------------------------------------------------------
+apply_all() {
+  local rel dst src mode
+  install -d -m 755 "$BACKUP_DIR" "$STATE_DIR"
+  prune_backups
+
+  if [ "${#CHANGED[@]}" -eq 0 ]; then
+    ok "bereits aktuell (${#SRC[@]} Dateien) – nichts zu tun"
+    record_state 0
+    return 0
+  fi
+
+  # Backup der Dateien, die ueberschrieben werden (nur bestehende)
+  local stamp list existing=()
+  stamp="$(date +%F_%H%M%S)"
+  list="$(mktemp)"
+  for rel in "${CHANGED[@]}"; do [ -e "/$rel" ] && existing+=("$rel"); done
+  if [ "${#existing[@]}" -gt 0 ]; then
+    printf '%s\n' "${existing[@]}" > "$list"
+    tar -C / -czf "$BACKUP_DIR/$stamp.tar.gz" -T "$list" \
+      || die "Backup fehlgeschlagen – nichts geaendert"
+    rm -f "$list"
+    info "Backup: $BACKUP_DIR/$stamp.tar.gz (${#existing[@]} Dateien)"
+  else
+    rm -f "$list"
+    info "kein Backup noetig (nur neue Dateien)"
+  fi
+
+  for rel in "${CHANGED[@]}"; do
+    src="${SRC[$rel]}"; dst="/$rel"
+    mode="$(stat -c %a "$src")"
+    install -D -m "$mode" -o 0 -g 0 "$src" "$dst"
+    echo "    /$rel"
+  done
+
+  systemctl daemon-reload || warn "daemon-reload fehlgeschlagen"
+  if [ -n "${SUDO_USER:-}" ] && [ -d "/run/user/$(id -u "$SUDO_USER")" ]; then
+    runuser -u "$SUDO_USER" -- env XDG_RUNTIME_DIR="/run/user/$(id -u "$SUDO_USER")" \
+      systemctl --user daemon-reload 2>/dev/null || true
+  fi
+  record_state "${#CHANGED[@]}"
+  ok "${#CHANGED[@]} Dateien angewendet"
+  info "Falls Dienste betroffen sind: betroffene Unit neu starten oder neu einloggen."
+}
+
+record_state() {
+  local n="$1"
+  printf '%s\t%s\t%s\n' \
+    "$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')" \
+    "$(date -Iseconds)" "$n" > "$STATE_DIR/applied"
+}
+
+prune_backups() {
+  local f removed=0 count
+  # aelter als KEEP_DAYS
+  while IFS= read -r f; do rm -f "$f"; removed=$((removed+1)); done < <(
+    find "$BACKUP_DIR" -maxdepth 1 -name '*.tar.gz' -type f -mtime +"$KEEP_DAYS" 2>/dev/null
+  )
+  # nur die letzten KEEP_BACKUPS behalten
+  count=$(find "$BACKUP_DIR" -maxdepth 1 -name '*.tar.gz' -type f 2>/dev/null | wc -l)
+  if [ "$count" -gt "$KEEP_BACKUPS" ]; then
+    while IFS= read -r f; do rm -f "$f"; removed=$((removed+1)); done < <(
+      find "$BACKUP_DIR" -maxdepth 1 -name '*.tar.gz' -type f -printf '%f\n' 2>/dev/null \
+        | LC_ALL=C sort | head -n "$((count-KEEP_BACKUPS))" | sed "s|^|$BACKUP_DIR/|"
+    )
+  fi
+  [ "$removed" -gt 0 ] && info "alte Backups entfernt: $removed"
+  return 0
+}
+
+restore_backup() {
+  local arg="$1" file
+  [ -d "$BACKUP_DIR" ] || die "Kein Backup-Verzeichnis vorhanden"
+  if [ "$arg" = "last" ]; then
+    file="$(find "$BACKUP_DIR" -maxdepth 1 -name '*.tar.gz' -type f -printf '%f\n' \
+      | LC_ALL=C sort | tail -1)"
+    [ -n "$file" ] || die "Kein Backup gefunden"
+    file="$BACKUP_DIR/$file"
+  else
+    file="$BACKUP_DIR/$arg.tar.gz"
+    [ -f "$file" ] || die "Backup nicht gefunden: $file"
+  fi
+  info "Zurueckrollen: $file"
+  tar -C / -xzf "$file" || die "Restore fehlgeschlagen"
+  systemctl daemon-reload || warn "daemon-reload fehlgeschlagen"
+  ok "wiederhergestellt (Stand vor dem letzten Apply)"
+}
+
+case "$MODE" in
+  apply)   apply_all ;;
+  restore) [ -n "$RESTORE_ARG" ] || die "--restore braucht 'last' oder einen Zeitstempel"
+           restore_backup "$RESTORE_ARG" ;;
+esac

@@ -75,8 +75,10 @@ bildet das mit **btrfs + snapper** nach:
 - **snapper** läuft auf `/` (Subvolumen `@`): `NUMBER_LIMIT=10`,
   `NUMBER_LIMIT_IMPORTANT=5`, Timeline aus, `snapper-cleanup.timer` aktiv.
 - **grub-btrfs** + `snapper-support` hängen die Snapshots als
-  **Booteinträge ins GRUB-Menü** (schreibgeschützt bootbar);
-  `grub-btrfsd.service` und `grub-btrfs-snapper.path` sind aktiv.
+  **Booteinträge ins GRUB-Menü** (schreibgeschützt bootbar). Aktiv ist nur
+  `grub-btrfsd.service`; `grub-btrfs-snapper.path` bleibt aus, weil beide
+  dieselbe Datei schreiben und sich gegenseitig überholen (siehe
+  `docs/arch-fix.md` §12).
 - Mitglieder der Gruppe `wheel` dürfen Snapshots ohne `sudo` auflisten
   (`ALLOW_GROUPS="wheel"`).
 
@@ -100,6 +102,31 @@ Bewusste Grenzen:
 
 Damit ist der NixOS-Effekt da: Ein kaputtes Update lässt sich auf den Stand
 davor zurückdrehen, inklusive Boot über den Snapshot im GRUB-Menü.
+
+## Config-Stand einspielen (`apply-config`)
+
+Die verwalteten Systemdateien (`shared/config`, `hosts/<host>/config`) lassen
+sich auf einem **laufenden** System abgleichen – ohne Neuinstallation:
+
+```bash
+cd ~/arch-linux && git pull --ff-only
+./bin/apply-config --list        # verwaltete Pfade
+./bin/apply-config --verify      # nur prüfen (Exit 1 bei Abweichung)
+./bin/apply-config --dry-run     # Änderungen + unified diff
+sudo ./bin/apply-config          # anwenden
+sudo ./bin/apply-config --status # Repo-HEAD vs. zuletzt angewendetem Stand
+sudo ./bin/apply-config --restore last   # letzten Apply zurückrollen
+```
+
+- Geschrieben werden nur Dateien unter `/etc`, `/usr/local` und `/usr/share`;
+  `hosts/<host>/config` gewinnt über `shared/config`.
+- **Es wird nie etwas gelöscht.** Fremde/App-eigene Dateien bleiben unberührt.
+- Vor jedem Schreiben: `tar.gz` der **überschriebenen** Dateien unter
+  `/var/backups/arch-config/`; aufgeräumt beim nächsten Apply
+  (10 Backups / 90 Tage, kein Timer).
+- Kein `/home`, kein `/boot`, keine Kernel-Cmdline, keine Pakete, keine
+  Benutzerverwaltung. `daemon-reload` läuft automatisch, Dienste werden
+  **nicht** neu gestartet.
 
 ## Struktur
 
