@@ -45,6 +45,7 @@ libsecret
 speech-dispatcher
 xorg-xwayland
 # --- Werkzeuge ------------------------------------------------------------
+opencode
 git
 base-devel
 curl
