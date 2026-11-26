@@ -378,12 +378,16 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
 1. **Hardware-Test auf nex**: NVIDIA/PRIME, Dynamic Boost, GC7 (ChatMix/EQ),
    Legion-Akku, Touchpad, Greeter-Sync (greift erst nach dem ersten Login).
 2. **Hardware-Test lion-pc** (AMD/RADV, DDC-CI, scx_lavd, Flatpak/Bazaar,
-   Bazaar-Auto-Update, Flathub-Key-Refresh, BedrockOnLinux/Xbox-Friends).
+   Bazaar-Auto-Update, Flathub-Key-Refresh). Bedrock lief bereits: 5 Welten
+   im Prefix (4 aus Backup + 1 neue), `msa`-Login sofort da.
    - **Erledigt (2026-11-26):** Login-Handoff-Fix (`docs/arch-fix.md` §11)
      und grub-btrfs-Fix (§12) live nachgezogen, `speedtest-cli` entfernt.
      Nach dem Reboot geprüft: `ShowStatus=no`, keine failed Units, Login
      ohne Aufblitzen.
-3. **benny**: Entscheidung offen; Profil noch nicht angelegt (s. o.).
+3. **benny**: Installation abgeschlossen (2026-11-26), Nachcheck sauber
+   (keine failed Units, Login-Fix aktiv, Bazaar-Auto-Update läuft,
+   Boosteroid 1.11.29 startet aus dem Menü). ASM-EQ/Mikrofon stellt er selbst
+   ein – bei Problemen meldet er sich.
 4. **Nix-Skripte**: `audio-rate`, `mic-check` (nicht nötig, Werte stehen fest),
    `nvidia-track`, `boosteroid-track` – bei Bedarf neu bauen.
 5. **ISO-Hosting** für Benny (Storage-Box-Unterkonto, read-only, `.sha256`).
