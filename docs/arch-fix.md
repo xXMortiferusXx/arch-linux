@@ -989,3 +989,35 @@ Entfernen, sobald upstream Unit und Daemon wieder zusammenpassen.
 Bestehende Systeme: Datei nach `/etc/systemd/user/…/` bzw.
 `~/.config/systemd/user/…/` legen, dann `systemctl --user daemon-reload`,
 `reset-failed`, `start`.
+
+## 14. Boosteroid startet nicht aus dem Menü (Leerzeichen im Exec-Pfad)
+
+**Symptom (benny, 2026-11-26):** Klick auf den Menüeintrag bewirkt nichts.
+
+**Ursache:** Der Client schreibt sich seinen eigenen Eintrag nach
+`~/.local/share/applications/Boosteroid.desktop`, mit **unquoted** Pfad:
+
+```
+Exec=/home/benny/.local/share/Boosteroid Games S.R.L./Boosteroid/Boosteroid
+```
+
+Laut Desktop-Spec wird die `Exec`-Zeile an Leerzeichen zerlegt. Der Starter
+sucht dann `/home/benny/.local/share/Boosteroid` (existiert nicht) und beendet
+sich ohne Meldung.
+
+**Fix:** Anführungszeichen setzen:
+
+```
+Exec="/home/benny/.local/share/Boosteroid Games S.R.L./Boosteroid/Boosteroid"
+```
+
+Datei sichern, Zeile ersetzen, fertig – kein `QT_QPA_PLATFORM` nötig.
+
+**Wichtig zur Einordnung:** Der Client (1.11.29) bringt Qt **nur mit dem
+xcb-Plugin** mit, läuft also immer über Xwayland. `DISPLAY=:0` setzt Umbriel
+für gestartete Apps korrekt; `QT_QPA_PLATFORM=wayland` aus der Session wird
+ignoriert (Plugin nicht vorhanden). Ein Zwang auf `xcb` ist daher **nicht**
+nötig.
+
+**Wenn es wiederkommt:** Der Client kann die Datei bei einem Update neu
+schreiben. Dann dieselbe Zeile erneut quoten.
