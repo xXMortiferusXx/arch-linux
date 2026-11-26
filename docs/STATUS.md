@@ -404,6 +404,9 @@ sudo mount -o subvol=@ /dev/nbd0p2 /mnt/t   # + /dev/nbd0p1 → /mnt/t/boot
 ## 12. Nützliche Befehle auf dem Zielsystem
 
 ```bash
+sudo arch-apply                     # aktuellen main-Stand der Configs einspielen
+sudo arch-apply --verify            # nur prüfen (0 Abweichungen = sauber)
+sudo arch-apply --restore last      # letzten Apply zurückrollen
 arch-check          # ausstehende Updates (pacman+chaotic+AUR), Orphans, Reboot
 arch-clean          # Orphans, paccache, paru-Cache, Journal
 arch-update         # interaktiver Updater (Tray + Timer laufen automatisch)
