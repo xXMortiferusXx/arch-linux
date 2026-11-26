@@ -95,6 +95,9 @@ desired_mode() { if [ -x "$1" ]; then echo 755; else echo 644; fi; }
 
 is_home_managed() {
   local rel="$1" p
+  # Von Noctalia erzeugt (Farben/Templates) - nicht aus dem Repo diktieren,
+  # sonst ueberschreibt jeder Apply die aktuell synchronisierten Farben.
+  case "${rel##*/}" in noctalia.toml) return 1 ;; esac
   for p in "${HOME_PREFIXES[@]}"; do
     case "$rel" in "$p"*) return 0 ;; esac
   done
