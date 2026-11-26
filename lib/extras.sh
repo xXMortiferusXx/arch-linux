@@ -562,6 +562,21 @@ extras_flatpak() {
   arch-chroot "$TARGET" systemctl enable flatpak-key-refresh.timer >/dev/null 2>&1 \
     || ui_warn "flatpak-key-refresh.timer nicht aktivierbar"
 
+  # Bazaar-Daemon (Hintergrund-Auto-Update) beim Login starten. Die Unit hat
+  # keinen [Install]-Abschnitt, `systemctl enable` scheitert deshalb; der
+  # Symlink in graphical-session.target.wants ist der Weg (wie auf benny/lion).
+  # Der Drop-in gegen den falschen BusName liegt in shared/config.
+  if arch-chroot "$TARGET" test -f /usr/lib/systemd/user/io.github.kolunmi.Bazaar.service; then
+    local username="${USERNAME:-mortiferus}" udir uid gid
+    udir="$TARGET/home/$username/.config/systemd/user/graphical-session.target.wants"
+    uid="$(stat -c %u "$TARGET/home/$username")"
+    gid="$(stat -c %g "$TARGET/home/$username")"
+    install -d -m 755 -o "$uid" -g "$gid" "$udir" \
+      && ln -sfn /usr/lib/systemd/user/io.github.kolunmi.Bazaar.service "$udir/" \
+      && chown -h "$uid:$gid" "$udir/io.github.kolunmi.Bazaar.service" \
+      || ui_warn "Bazaar-Autostart nicht verlinkbar"
+  fi
+
   ui_ok "Flatpak + Flathub, Bazaar (Auto-Update), Key-Refresh"
 }
 

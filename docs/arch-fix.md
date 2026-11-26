@@ -1021,3 +1021,19 @@ nötig.
 
 **Wenn es wiederkommt:** Der Client kann die Datei bei einem Update neu
 schreiben. Dann dieselbe Zeile erneut quoten.
+
+## 15. Installer-Nachträge (2026-11-26)
+
+Damit Neuinstallationen den Stand der drei Hosts abbilden:
+
+- `lib/extras.sh`: Bazaar-Autostart wird angelegt
+  (`~/.config/systemd/user/graphical-session.target.wants/`), weil die Unit
+  keinen `[Install]`-Abschnitt hat (§13). grub-btrfs: nur der Daemon (§12).
+- `shared/config`/`hosts/benny/config`: Login-Fix (§11), Bazaar-Drop-in (§13),
+  Boosteroid-Wrapper.
+- `hosts/benny/home`: Umbriel-Config (Noctalia-Autostart, Outputs) und
+  `Boosteroid.desktop` mit gequotetem `Exec` (§14).
+- `hosts/benny/post.sh`: AUR-Pakete (heroic, naps2, ookla) und Boosteroid-
+  Aktualkopie nach `$HOME`.
+- `shared/packages.list`: `speedtest-cli` entfernt, `opencode` nur bei
+  `nex`/`benny`.

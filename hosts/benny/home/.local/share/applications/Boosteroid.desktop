@@ -3,7 +3,11 @@ Encoding=UTF-8
 Version=1.0
 Type=Application
 Terminal=false
-Exec=/usr/local/bin/boosteroid
+# Der Client legt diese Datei selbst an - mit unquoted Pfad. Wegen der
+# Leerzeichen in "Boosteroid Games S.R.L." startet der Menueeintrag dann nicht
+# (Desktop-Spec zerlegt Exec an Leerzeichen). Deshalb hier mit Quotes.
+Exec="/home/benny/.local/share/Boosteroid Games S.R.L./Boosteroid/Boosteroid"
 Name=Boosteroid
 Comment=Boosteroid cloud gaming client
-Icon=/home/benny/.local/share/Boosteroid.svg
+Icon=/home/benny/.local/share/Boosteroid Games S.R.L./Boosteroid/Boosteroid.svg
+StartupWMClass=Boosteroid
