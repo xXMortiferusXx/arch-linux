@@ -957,3 +957,35 @@ systemctl --failed            # leer
 
 Verifiziert auf benny: `sudo snapper -c root create -d test` →
 `grub-btrfs.cfg` wird neu erzeugt, kein Fehler. (Test-Snapshot danach löschen.)
+
+## 13. bazaar-git: Unit startet nicht (BusName passt nicht)
+
+**Symptom (lion-pc, 2026-11-26):** `systemctl --failed` zeigt
+`io.github.kolunmi.Bazaar.service`; im Journal:
+
+```
+(bazaar-daemon): Idle, but auto update is on so staying alive
+io.github.kolunmi.Bazaar.service: start operation timed out. Terminating.
+```
+
+**Ursache:** Die Unit (aus `bazaar-git 0.10.0`) ist `Type=dbus` mit
+`BusName=io.github.kolunmi.Bazaar`. Der Daemon mit `--no-window` belegt aber
+nur `io.github.kolunmi.Bazaar.SearchProvider`. systemd wartet 60 s auf den
+Namen und killt den Prozess.
+
+**Fix:** Drop-in `shared/config/etc/systemd/user/`
+`io.github.kolunmi.Bazaar.service.d/10-type-simple.conf`:
+
+```ini
+[Service]
+Type=simple
+BusName=
+```
+
+Damit läuft der Daemon (Hintergrund-Auto-Update) weiter; die GUI startet
+unverändert über die D-Bus-Aktivierung (`/usr/share/dbus-1/services`).
+Entfernen, sobald upstream Unit und Daemon wieder zusammenpassen.
+
+Bestehende Systeme: Datei nach `/etc/systemd/user/…/` bzw.
+`~/.config/systemd/user/…/` legen, dann `systemctl --user daemon-reload`,
+`reset-failed`, `start`.
