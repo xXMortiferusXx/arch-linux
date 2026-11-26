@@ -36,3 +36,4 @@ uv
 # naps2, ookla-speedtest) kommen in post.sh, weil chaotic erst nach pacstrap
 # eingebunden wird bzw. AUR-Pakete nur ueber aur_install gebaut werden.
 retroarch
+opencode
