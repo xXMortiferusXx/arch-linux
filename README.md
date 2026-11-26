@@ -127,8 +127,9 @@ sudo ./bin/apply-config --restore last   # letzten Apply zurückrollen
 - Kein `/boot`, keine Kernel-Cmdline, keine Pakete, keine Benutzerverwaltung.
   `daemon-reload` läuft automatisch, Dienste werden **nicht** neu gestartet.
 - **Home:** nur ausdrücklich deklarierte Pfade (`HOME_PREFIXES` im Skript),
-  aktuell `~/.config/umbriel/` – damit Umbriel-/Noctalia-Fixes nach einem
-  Umbriel-Update verteilt werden können. Alles andere im Home bleibt unberührt.
+  aktuell `~/.config/umbriel/` – damit Umbriel-Fixes nach einem Umbriel-Update
+  verteilt werden können. `noctalia.toml` ist ausgenommen: die erzeugt Noctalia
+  selbst (Farben/Templates). Alles andere im Home bleibt unberührt.
 - **Rechte** werden mitverwaltet (Modus aus dem Repo), damit z. B. 775/664 aus
   alten Installationen auf 755/644 korrigiert werden.
 
